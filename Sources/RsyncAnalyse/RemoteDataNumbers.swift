@@ -12,7 +12,7 @@ import Foundation
 public struct RemoteDataNumbers: Identifiable, Hashable, Sendable {
     public var id: UUID
     public var outputfromrsync: [RsyncOutputData]?
-    
+
     public init(id: UUID = UUID(), outputfromrsync: [RsyncOutputData]? = nil) {
         self.id = id
         self.outputfromrsync = outputfromrsync

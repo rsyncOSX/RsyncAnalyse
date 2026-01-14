@@ -11,7 +11,7 @@ import Foundation
 public struct RsyncOutputData: Identifiable, Equatable, Hashable, Sendable {
     public let id = UUID()
     public var record: String
-    
+
     public init(record: String) {
         self.record = record
     }

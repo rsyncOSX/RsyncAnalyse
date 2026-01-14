@@ -7,8 +7,8 @@
 
 import Foundation
 
-extension ActorRsyncOutputAnalyzer {
-    public struct AnalysisResult: Sendable {
+public extension ActorRsyncOutputAnalyser {
+    struct AnalysisResult: Sendable {
         public let itemizedChanges: [ItemizedChange]
         public let statistics: Statistics
         public let isDryRun: Bool
@@ -16,10 +16,10 @@ extension ActorRsyncOutputAnalyzer {
         public let warnings: [String]
 
         public init(itemizedChanges: [ItemizedChange],
-             statistics: Statistics,
-             isDryRun: Bool,
-             errors: [String] = [],
-             warnings: [String] = []) {
+                    statistics: Statistics,
+                    isDryRun: Bool,
+                    errors: [String] = [],
+                    warnings: [String] = []) {
             self.itemizedChanges = itemizedChanges
             self.statistics = statistics
             self.isDryRun = isDryRun
@@ -28,16 +28,16 @@ extension ActorRsyncOutputAnalyzer {
         }
     }
 
-    public struct ItemizedChange: Sendable {
+    struct ItemizedChange: Sendable {
         public let changeType: ChangeType
         public let path: String
         public let target: String? // For symlinks
         public let flags: ChangeFlags
 
         public init(changeType: ChangeType,
-             path: String,
-             target: String? = nil,
-             flags: ChangeFlags = .none) {
+                    path: String,
+                    target: String? = nil,
+                    flags: ChangeFlags = .none) {
             self.changeType = changeType
             self.path = path
             self.target = target
@@ -45,7 +45,7 @@ extension ActorRsyncOutputAnalyzer {
         }
     }
 
-    public enum ChangeType: String, CaseIterable, Sendable {
+    enum ChangeType: String, CaseIterable, Sendable {
         case symlink = "L"
         case directory = "d"
         case file = "f"
@@ -77,7 +77,7 @@ extension ActorRsyncOutputAnalyzer {
         }
     }
 
-    public struct ChangeFlags: Sendable {
+    struct ChangeFlags: Sendable {
         public let fileType: String
         public let checksum: Bool // c
         public let size: Bool // s
@@ -147,7 +147,7 @@ extension ActorRsyncOutputAnalyzer {
         }
     }
 
-    public struct Statistics: Sendable {
+    struct Statistics: Sendable {
         public let totalFiles: FileCount
         public let filesCreated: FileCount
         public let filesDeleted: Int
@@ -163,18 +163,18 @@ extension ActorRsyncOutputAnalyzer {
         public let warnings: [String]
 
         public init(totalFiles: FileCount,
-             filesCreated: FileCount,
-             filesDeleted: Int,
-             regularFilesTransferred: Int,
-             totalFileSize: Int64,
-             totalTransferredSize: Int64,
-             literalData: Int64,
-             matchedData: Int64,
-             bytesSent: Int64,
-             bytesReceived: Int64,
-             speedup: Double,
-             errors: [String] = [],
-             warnings: [String] = []) {
+                    filesCreated: FileCount,
+                    filesDeleted: Int,
+                    regularFilesTransferred: Int,
+                    totalFileSize: Int64,
+                    totalTransferredSize: Int64,
+                    literalData: Int64,
+                    matchedData: Int64,
+                    bytesSent: Int64,
+                    bytesReceived: Int64,
+                    speedup: Double,
+                    errors: [String] = [],
+                    warnings: [String] = []) {
             self.totalFiles = totalFiles
             self.filesCreated = filesCreated
             self.filesDeleted = filesDeleted
@@ -200,7 +200,7 @@ extension ActorRsyncOutputAnalyzer {
         }
     }
 
-    public struct FileCount: CustomStringConvertible, Sendable {
+    struct FileCount: CustomStringConvertible, Sendable {
         public let total: Int
         public let regular: Int
         public let directories: Int
@@ -225,7 +225,7 @@ extension ActorRsyncOutputAnalyzer {
 
 // MARK: - Additional Convenience Extensions
 
-extension ActorRsyncOutputAnalyzer.ItemizedChange: CustomStringConvertible {
+extension ActorRsyncOutputAnalyser.ItemizedChange: CustomStringConvertible {
     public var description: String {
         var result = "\(changeType.description): \(path)"
         if let target {
@@ -238,7 +238,7 @@ extension ActorRsyncOutputAnalyzer.ItemizedChange: CustomStringConvertible {
     }
 }
 
-extension ActorRsyncOutputAnalyzer.Statistics: CustomStringConvertible {
+extension ActorRsyncOutputAnalyser.Statistics: CustomStringConvertible {
     public var description: String {
         var result = """
         📊 Statistics:
@@ -248,16 +248,16 @@ extension ActorRsyncOutputAnalyzer.Statistics: CustomStringConvertible {
           Transferred: \(regularFilesTransferred)
 
         💾 Data Transfer:
-          Total size: \(ActorRsyncOutputAnalyzer.formatBytes(totalFileSize))
-          Transferred: \(ActorRsyncOutputAnalyzer.formatBytes(totalTransferredSize))
+          Total size: \(ActorRsyncOutputAnalyser.formatBytes(totalFileSize))
+          Transferred: \(ActorRsyncOutputAnalyser.formatBytes(totalTransferredSize))
           Efficiency: \(String(format: "%.2f", efficiencyPercentage))%
           Speedup: \(String(format: "%.2f", speedup))x
 
         📊 Transfer Details:
-          Literal data: \(ActorRsyncOutputAnalyzer.formatBytes(literalData))
-          Matched data: \(ActorRsyncOutputAnalyzer.formatBytes(matchedData))
-          Sent: \(ActorRsyncOutputAnalyzer.formatBytes(bytesSent))
-          Received: \(ActorRsyncOutputAnalyzer.formatBytes(bytesReceived))
+          Literal data: \(ActorRsyncOutputAnalyser.formatBytes(literalData))
+          Matched data: \(ActorRsyncOutputAnalyser.formatBytes(matchedData))
+          Sent: \(ActorRsyncOutputAnalyser.formatBytes(bytesSent))
+          Received: \(ActorRsyncOutputAnalyser.formatBytes(bytesReceived))
         """
 
         if !errors.isEmpty {
@@ -271,8 +271,8 @@ extension ActorRsyncOutputAnalyzer.Statistics: CustomStringConvertible {
     }
 }
 
-extension ActorRsyncOutputAnalyzer.ChangeFlags {
-    public var flagString: String {
+public extension ActorRsyncOutputAnalyser.ChangeFlags {
+    var flagString: String {
         var flags = fileType
         if checksum { flags += "c" }
         if size { flags += "s" }
@@ -288,8 +288,8 @@ extension ActorRsyncOutputAnalyzer.ChangeFlags {
 
 // MARK: - Helper Methods
 
-extension ActorRsyncOutputAnalyzer {
-    public func summary(for result: AnalysisResult) -> String {
+public extension ActorRsyncOutputAnalyser {
+    func summary(for result: AnalysisResult) -> String {
         var summary = """
         ════════════════════════════
         RSYNC ANALYSIS SUMMARY
@@ -323,7 +323,7 @@ extension ActorRsyncOutputAnalyzer {
         return summary
     }
 
-    public func changesByType(for result: AnalysisResult) -> [ChangeType: Int] {
+    func changesByType(for result: AnalysisResult) -> [ChangeType: Int] {
         var counts: [ChangeType: Int] = [:]
         for change in result.itemizedChanges {
             counts[change.changeType, default: 0] += 1

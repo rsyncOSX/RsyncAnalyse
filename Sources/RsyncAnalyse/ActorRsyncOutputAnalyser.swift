@@ -7,13 +7,13 @@
 
 import Foundation
 
-public actor ActorRsyncOutputAnalyzer {
+public actor ActorRsyncOutputAnalyser {
     // MARK: - Properties
 
     private var analysisCache: [Int: AnalysisResult] = [:]
 
     // MARK: - Initializer
-    
+
     public init() {}
 
     // MARK: - Public Interface
@@ -369,8 +369,8 @@ public enum RsyncAnalysisError: Error, LocalizedError {
 }
 
 // Optional throwing version
-extension ActorRsyncOutputAnalyzer {
-    public func analyzeThrowing(_ output: String) throws -> AnalysisResult {
+public extension ActorRsyncOutputAnalyser {
+    func analyzeThrowing(_ output: String) throws -> AnalysisResult {
         guard !output.isEmpty else {
             throw RsyncAnalysisError.emptyOutput
         }
