@@ -17,7 +17,6 @@ RsyncAnalyse provides powerful parsing, analysis, and visualization capabilities
 ✅ Extract comprehensive statistics (file counts, sizes, speedup)  
 ✅ Detect errors and warnings  
 ✅ Support for dry-run detection  
-✅ SwiftUI views with syntax highlighting  
 ✅ Thread-safe with Swift concurrency  
 ✅ Caching support for performance  
 ✅ Sendable types for safe concurrency  
@@ -88,24 +87,6 @@ let result2 = await analyzer.analyzeCached(output) // Uses cache
 
 // Clear cache when needed
 await analyzer.clearCache()
-```
-
-### SwiftUI Views
-
-```swift
-import SwiftUI
-import RsyncAnalyse
-
-struct MyView: View {
-    let remoteData: RemoteDataNumbers
-    
-    var body: some View {
-        DetailsVerifyView(
-            remotedatanumbers: remoteData,
-            istagged: true
-        )
-    }
-}
 ```
 
 ### Supporting Views
