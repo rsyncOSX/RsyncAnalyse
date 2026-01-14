@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 
 public actor ActorRsyncOutputAnalyser {
     // MARK: - Properties
@@ -40,6 +41,7 @@ public actor ActorRsyncOutputAnalyser {
     // MARK: - Private Analysis
 
     private func analyzeOutput(_ output: String) -> AnalysisResult? {
+        Logger.process.debugWithThreadInfo("ActorRsyncOutputAnalyser:  analyzeOutput()")
         var itemizedChanges: [ItemizedChange] = []
         var statsLines: [String] = []
         var parsingStats = false
