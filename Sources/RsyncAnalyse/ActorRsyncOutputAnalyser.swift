@@ -22,12 +22,6 @@ public actor ActorRsyncOutputAnalyser {
         analyzeOutput(output)
     }
 
-    public func analyze(_ output: [RsyncOutputData]) -> AnalysisResult? {
-        guard !output.isEmpty else { return nil }
-        let stringData = output.map(\.record).joined(separator: "\n")
-        return analyzeOutput(stringData)
-    }
-
     public func analyzeCached(_ output: String) -> AnalysisResult? {
         let hash = output.hashValue
         if let cached = analysisCache[hash] {

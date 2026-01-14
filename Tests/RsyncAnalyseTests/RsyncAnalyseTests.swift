@@ -222,27 +222,6 @@ struct RsyncAnalyseTests {
         #expect(result?.statistics.speedup == 12345.67)
     }
 
-    @Test("Array input parsing")
-    func arrayInputParsing() async {
-        let data = [
-            RsyncOutputData(record: ".f..t....... file1.txt"),
-            RsyncOutputData(record: ".d..t....... folder/"),
-            RsyncOutputData(record: "Number of files: 2 (reg: 1, dir: 1, link: 0)"),
-            RsyncOutputData(record: "Total file size: 1024 bytes")
-        ]
-
-        let result = await analyzer.analyze(data)
-        #expect(result != nil)
-        #expect(result?.itemizedChanges.count == 2)
-        #expect(result?.statistics.totalFiles.total == 2)
-    }
-
-    @Test("Empty array input")
-    func emptyArrayInput() async {
-        let result = await analyzer.analyze([])
-        #expect(result == nil)
-    }
-
     // MARK: - Utility Function Tests
 
     @Test("Format bytes utility")
