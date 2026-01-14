@@ -1,5 +1,5 @@
 //
-//  DetailsVerifyView.swift
+//  RsyncOutputRecord.swift
 //  RsyncAnalyse
 //
 //  Created by Thomas Evensen on 11/01/2026.

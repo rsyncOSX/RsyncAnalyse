@@ -1,5 +1,5 @@
 //
-//  ActorRsyncOutputAnalyzer.swift
+//  ActorRsyncOutputAnalyser.swift
 //  RsyncAnalyse
 //
 //  Created by Thomas Evensen on 11/01/2026.
