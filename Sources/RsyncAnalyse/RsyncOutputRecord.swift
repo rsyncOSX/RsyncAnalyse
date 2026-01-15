@@ -98,13 +98,18 @@ public struct RsyncOutputRecord {
         }
 
         // Position 9: ACL
-        if chars.count > 9, chars[9] == "a" || chars[9] == "+" {
+        if chars[9] == "a" || chars[9] == "+" {
             attrs.append(RsyncAttribute(name: "acl", code: chars[9]))
         }
 
         // Position 10: extended attributes
-        if chars.count > 10, chars[10] == "x" || chars[10] == "+" {
+        if chars[10] == "x" || chars[10] == "+" {
             attrs.append(RsyncAttribute(name: "xattr", code: chars[10]))
+        }
+
+        // Position 11: future use
+        if chars[11] == "?" || chars[11] == "+" {
+            attrs.append(RsyncAttribute(name: "future", code: chars[11]))
         }
 
         let path = String(chars.dropFirst(13)).trimmingCharacters(in: .whitespaces)
@@ -135,8 +140,8 @@ public struct RsyncOutputRecord {
         switch updateType {
         case ".": ("NO_UPDATE", .gray)
         case "*": ("MESSAGE", .orange)
-        case ">": ("RECEIVED", .blue)
-        case "<": ("SENT", .purple)
+        case ">": ("SENT", .blue)
+        case "<": ("RECEIVED", .purple)
         case "c": ("LOCAL_CHANGE", .green)
         case "h": ("HARDLINK", .indigo)
         default: ("UNKNOWN", .red)

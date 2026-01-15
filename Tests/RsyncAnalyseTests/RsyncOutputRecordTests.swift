@@ -17,31 +17,31 @@ struct RsyncOutputRecordTests {
     struct BasicFormatTestsFixed {
         @Test("Parse new file with all attributes new")
         func parseNewFile() {
-            // Format: >f+++++++++ (11 chars:  > f and 9 plusses)
-            let record = ">f+++++++++ documents/report.pdf"
+            // Format: >f++++++++++ (12 chars: > f and 10 plusses)
+            let record = ">f++++++++++ documents/report.pdf"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil, "Should parse new file record")
             #expect(parsed?.updateType == ">")
             #expect(parsed?.fileType == "f")
             #expect(parsed?.path == "documents/report.pdf")
-            #expect(parsed?.attributes.count == 9)
+            #expect(parsed?.attributes.count == 10)
             #expect(parsed?.isNewItem == true)
             #expect(parsed?.fileTypeLabel == "file")
         }
 
         @Test("Parse file with size and time change")
         func parseFileWithSizeAndTimeChange() {
-            // Format: >f.st...... (11 chars: >f + .  + s + t + 6 dots)
-            //         012345678901
-            //         >f.st......
-            let record = ">f.st...... images/photo.jpg"
+            // Format: >f.st....... (12 chars: >f + .  + s + t + 7 dots)
+            //         0123456789ABC
+            //         >f.st.......
+            let record = ">f.st....... images/photo.jpg"
 
             // Validate format
             let chars = Array(record)
-            let formatString = String(chars.prefix(11))
-            #expect(formatString.count == 11, "Format should be 11 chars, got \(formatString.count): '\(formatString)'")
-            #expect(chars.count > 11 && chars[11] == " ", "Position 11 should be space")
+            let formatString = String(chars.prefix(12))
+            #expect(formatString.count == 12, "Format should be 12 chars, got \(formatString.count): '\(formatString)'")
+            #expect(chars.count > 12 && chars[12] == " ", "Position 12 should be space")
 
             let parsed = RsyncOutputRecord(from: record)
 
@@ -57,10 +57,10 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse directory with timestamp change")
         func parseDirectoryTimestampChange() {
-            // Format:  .d..t...... (11 chars:  .  + d + 2 dots + t + 6 dots)
-            //         012345678901
-            //         .d..t......
-            let record = ".d..t...... src/components/"
+            // Format:  .d..t....... (12 chars:  .  + d + 2 dots + t + 7 dots)
+            //         0123456789ABC
+            //         .d..t.......
+            let record = ".d..t....... src/components/"
 
             let parsed = RsyncOutputRecord(from: record)
 
@@ -75,10 +75,10 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse permission change only")
         func parsePermissionChange() {
-            // Format: .f....p.... (11 chars: . + f + 4 dots + p + 4 dots)
-            //         012345678901
-            //         .f....p....
-            let record = ".f...p..... scripts/deploy.sh"
+            // Format: .f...p...... (12 chars: . + f + 3 dots + p + 6 dots)
+            //         0123456789ABC
+            //         .f...p......
+            let record = ".f...p...... scripts/deploy.sh"
 
             let parsed = RsyncOutputRecord(from: record)
 
@@ -93,39 +93,39 @@ struct RsyncOutputRecordTests {
         @Test("Verify format string lengths")
         func verifyFormatLengths() {
             let testCases: [(format: String, description: String)] = [
-                (">f+++++++++", "New file"),
-                (">f.st......", "Size and time"),
-                (".d..t......", "Dir time change"),
-                (".f....p....", "Permission change"),
-                (".f.stpog...", "Multiple attributes"),
-                ("cd+++++++++", "New directory"),
-                ("<f.st......", "Sent file"),
-                ("hf.........", "Hard link"),
-                (".f.........", "No changes")
+                (">f++++++++++", "New file"),
+                (">f.st.......", "Size and time"),
+                (".d..t.......", "Dir time change"),
+                (".f....p.....", "Permission change"),
+                (".f.stpog....", "Multiple attributes"),
+                ("cd++++++++++", "New directory"),
+                ("<f.st.......", "Sent file"),
+                ("hf..........", "Hard link"),
+                (".f..........", "No changes")
             ]
 
             for (format, description) in testCases {
-                #expect(format.count == 11,
-                        "\(description) format '\(format)' should be 11 chars, got \(format.count)")
+                #expect(format.count == 12,
+                        "\(description) format '\(format)' should be 12 chars, got \(format.count)")
             }
         }
 
         @Test("Parse with visual format guide")
         func parseWithVisualGuide() {
-            // Visual guide for the 11-character format:
-            // Position:  0 1 2 3 4 5 6 7 8 9 10
-            // Format:   Y X c s t p o g u a  x
-            // Example:  > f .  s t . . . . .   .
+            // Visual guide for the 12-character format:
+            // Position:  0 1 2 3 4 5 6 7 8 9 10 11
+            // Format:   Y X c s t p o g u a  x  
+            // Example:  > f .  s t . . . . .   .  
 
             let testCases: [(record: String, expectedAttrs: [String])] = [
-                (">f.st...... file1.txt", ["size", "time"]),
-                (".f..t...... file2.txt", ["time"]),
-                (".f...p..... file3.txt", ["permissions"]),
-                (".f....o.... file4.txt", ["owner"]),
-                (".f.....g... file5.txt", ["group"]),
-                (".f........x file6.txt", ["xattr"]),
-                (".f.......a. file7.txt", ["acl"]),
-                (".fc........ file8.txt", ["checksum"])
+                (">f.st....... file1.txt", ["size", "time"]),
+                (".f..t....... file2.txt", ["time"]),
+                (".f...p...... file3.txt", ["permissions"]),
+                (".f....o..... file4.txt", ["owner"]),
+                (".f.....g.... file5.txt", ["group"]),
+                (".f........x. file6.txt", ["xattr"]),
+                (".f.......a.. file7.txt", ["acl"]),
+                (".fc......... file8.txt", ["checksum"])
             ]
 
             for (record, expectedAttrs) in testCases {
@@ -145,7 +145,7 @@ struct RsyncOutputRecordTests {
     struct FileTypeTests {
         @Test("Parse directory")
         func parseDirectory() {
-            let record = "cd+++++++++ backup/2024/"
+            let record = "cd++++++++++ backup/2024/"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -157,7 +157,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse symlink")
         func parseSymlink() {
-            let record = "cL+++++++++ config/current -> v2.0"
+            let record = "cL++++++++++ config/current -> v2.0"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -169,7 +169,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse symlink with attribute changes")
         func parseSymlinkWithChanges() {
-            let record = "cLc.t...... links/data -> /mnt/storage"
+            let record = "cLc.t....... links/data -> /mnt/storage"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -183,7 +183,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse device file")
         func parseDevice() {
-            let record = ">D+++++++++ dev/sda1"
+            let record = ">D++++++++++ dev/sda1"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -193,7 +193,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse special file")
         func parseSpecialFile() {
-            let record = ">S+++++++++ var/run/socket"
+            let record = ">S++++++++++ var/run/socket"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -208,7 +208,7 @@ struct RsyncOutputRecordTests {
     struct UpdateTypeTests {
         @Test("Parse sent file")
         func parseSentFile() {
-            let record = ">f.st...... data/export.csv"
+            let record = ">f.st....... data/export.csv"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -218,7 +218,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse received file")
         func parseReceivedFile() {
-            let record = "<f.st...... data/import.csv"
+            let record = "<f.st....... data/import.csv"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -228,7 +228,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse local change")
         func parseLocalChange() {
-            let record = "cd+++++++++ new_directory/"
+            let record = "cd++++++++++ new_directory/"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -238,7 +238,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse hard link")
         func parseHardLink() {
-            let record = "hf......... docs/readme.txt"
+            let record = "hf.......... docs/readme.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -248,7 +248,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse no update")
         func parseNoUpdate() {
-            let record = ".f......... unchanged.txt"
+            let record = ".f.......... unchanged.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -289,7 +289,7 @@ struct RsyncOutputRecordTests {
     struct AttributeCombinationTests {
         @Test("Parse multiple attribute changes")
         func parseMultipleAttributeChanges() {
-            let record = ">f.stpog... /var/www/index.html"
+            let record = ">f.stpog.... /var/www/index.html"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -305,7 +305,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse checksum change")
         func parseChecksumChange() {
-            let record = ".fc........ config.json"
+            let record = ".fc......... config.json"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -316,7 +316,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse owner and group change")
         func parseOwnerAndGroupChange() {
-            let record = ".f....og... file.txt"
+            let record = ".f....og.... file.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -333,7 +333,7 @@ struct RsyncOutputRecordTests {
     struct TimeVariantTests {
         @Test("Parse lowercase time change")
         func parseLowercaseTimeChange() {
-            let record = ".f..t...... file1.txt"
+            let record = ".f..t....... file1.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -344,7 +344,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse uppercase time change")
         func parseUppercaseTimeChange() {
-            let record = ".f..T...... file2.txt"
+            let record = ".f..T....... file2.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -360,7 +360,7 @@ struct RsyncOutputRecordTests {
     struct ExtendedAttributeTests {
         @Test("Parse ACL change")
         func parseACLChange() {
-            let record = ".f.......a. file_with_acl.txt"
+            let record = ".f.......a.. file_with_acl.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -371,7 +371,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse xattr change")
         func parseXattrChange() {
-            let record = ".f........x file_with_xattr.txt"
+            let record = ".f........x. file_with_xattr.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -382,7 +382,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse ACL and xattr change together")
         func parseACLAndXattrChange() {
-            let record = ".f.......ax file_with_both.txt"
+            let record = ".f.......ax. file_with_both.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -399,7 +399,7 @@ struct RsyncOutputRecordTests {
     struct PathTests {
         @Test("Parse path with spaces")
         func parsePathWithSpaces() {
-            let record = ">f+++++++++ my documents/important file.txt"
+            let record = ">f++++++++++ my documents/important file.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -408,7 +408,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse path with special characters")
         func parsePathWithSpecialCharacters() {
-            let record = ">f+++++++++ files/test@#$%.txt"
+            let record = ">f++++++++++ files/test@#$%.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -417,7 +417,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse absolute path")
         func parseAbsolutePath() {
-            let record = ">f+++++++++ /var/log/system.log"
+            let record = ">f++++++++++ /var/log/system.log"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -426,7 +426,7 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse path with Unicode characters")
         func parsePathWithUnicode() {
-            let record = ">f+++++++++ files/文档.txt"
+            let record = ">f++++++++++ files/文档.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
@@ -440,7 +440,7 @@ struct RsyncOutputRecordTests {
     struct EdgeCaseTests {
         @Test("Parse record with empty path")
         func parseEmptyPath() {
-            let record = ">f+++++++++"
+            let record = ">f+++++++++++"
             let parsed = RsyncOutputRecord(from: record)
 
             // Should either be nil or have empty path
@@ -480,29 +480,29 @@ struct RsyncOutputRecordTests {
     struct RealWorldExamples {
         @Test("Typical file sync scenario - corrected format")
         func realWorldExample1Corrected() {
-            // Each record must be exactly 11 chars + space + path
-            // Format: YXcstpoguax path
-            //         012345678901 12...
+            // Each record must be exactly 12 chars + space + path
+            // Format: YXcstpoguax  path
+            //         0123456789AB 12...
             let records = [
-                ".d..t...... ./", // 11 chars: .d..t......
-                ".f...p..... Something.pdf", // 11 chars: .f...p.....
-                ".f......... md5sum-2010-02-21.txt", // 11 chars: .f.........
-                ".f...p..... prova.rb", // 11 chars: .f...p.....
-                ".d......... .metadata/", // 11 chars: .d.........
-                ".f...p..... .metadata/.lock", // 11 chars: .f...p.....
-                ".f...p..... .metadata/version.ini", // 11 chars: .f...p.....
-                ">f+++++++++ Parameter_Usage.txt" // 11 chars: >f+++++++++
+                ".d..t....... ./",
+                ".f...p...... Something.pdf",
+                ".f.......... md5sum-2010-02-21.txt",
+                ".f...p...... prova.rb",
+                ".d.......... .metadata/",
+                ".f...p...... .metadata/.lock",
+                ".f...p...... .metadata/version.ini",
+                ">f++++++++++ Parameter_Usage.txt"
             ]
 
             // Verify each record format
             for (index, record) in records.enumerated() {
                 let chars = Array(record)
-                #expect(chars.count >= 12,
+                #expect(chars.count >= 13,
                         "Record \(index) too short: \(chars.count) chars - '\(record)'")
-                if chars.count >= 12 {
-                    let formatPart = String(chars[0 ... 10])
-                    #expect(chars[11] == " ",
-                            "Record \(index) missing space at position 11: '\(record)' - got '\(chars[11])' - format: '\(formatPart)'")
+                if chars.count >= 13 {
+                    let formatPart = String(chars[0 ... 11])
+                    #expect(chars[12] == " ",
+                            "Record \(index) missing space at position 12: '\(record)' - got '\(chars[12])' - format: '\(formatPart)'")
                 }
             }
 
@@ -535,31 +535,31 @@ struct RsyncOutputRecordTests {
             #expect(parsed[7].updateType == ">", "Last file should be received")
             #expect(parsed[7].isNewItem == true, "Last file should be new")
             #expect(parsed[7].path == "Parameter_Usage.txt", "Should have correct filename")
-            #expect(parsed[7].attributes.count == 9, "New file should have all 9 attributes marked as new")
+            #expect(parsed[7].attributes.count == 10, "New file should have all 10 attributes marked as new")
         }
 
         @Test("Backup scenario with deletions - corrected format")
         func realWorldExample2Corrected() {
-            // Each record must be exactly 11 chars + space + path
-            // Format: YXcstpoguax path
-            //         012345678901 12...
+            // Each record must be exactly 12 chars + space + path
+            // Format: YXcstpoguax  path
+            //         0123456789AB 12...
             let records = [
-                ">f.st...... data/updated.csv", // 11 chars: >f.st......
-                "cd+++++++++ logs/2024/", // 11 chars: cd+++++++++
-                ">f+++++++++ logs/2024/app.log", // 11 chars: >f+++++++++
+                ">f.st....... data/updated.csv", // 12 chars: >f.st.......
+                "cd++++++++++ logs/2024/", // 12 chars: cd+++++++++
+                ">f++++++++++ logs/2024/app.log", // 12 chars: >f+++++++++
                 "*deleting old/deprecated.txt", // Special deletion format
-                ".f....p.... scripts/backup.sh" // 11 chars: .f....p....
+                ".f....p..... scripts/backup.sh" // 12 chars: .f....p.....
             ]
 
             // Verify each record format
             for (index, record) in records.enumerated() {
                 if !record.hasPrefix("*") {
                     let chars = Array(record)
-                    #expect(chars.count >= 12,
+                    #expect(chars.count >= 13,
                             "Record \(index) too short: \(chars.count) chars - '\(record)'")
-                    if chars.count >= 12 {
-                        #expect(chars[11] == " ",
-                                "Record \(index) missing space at position 11: '\(record)' - got '\(chars[11])'")
+                    if chars.count >= 13 {
+                        #expect(chars[12] == " ",
+                                "Record \(index) missing space at position 12: '\(record)' - got '\(chars[12])'")
                     }
                 }
             }
@@ -581,24 +581,24 @@ struct RsyncOutputRecordTests {
 
         @Test("Complex attribute changes - corrected format")
         func realWorldExample3Corrected() {
-            // Each record must be exactly 11 chars + space + path
-            // Format: YXcstpoguax path
-            //         012345678901 12...
+            // Each record must be exactly 12 chars + space + path
+            // Format: YXcstpoguax  path
+            //         0123456789AB 12...
             let records = [
-                ">f.stpog... /var/www/index.html", // 11 chars: >f.stpog...
-                ".fc........ config/settings.json", // 11 chars: .fc........
-                "cLc.t...... bin/current -> /usr/local/bin/v2.0", // 11 chars: cLc.t......
-                "hf......... backup/file1.txt" // 11 chars: hf.........
+                ">f.stpog.... /var/www/index.html",
+                ".fc......... config/settings.json",
+                "cLc.t....... bin/current -> /usr/local/bin/v2.0",
+                "hf.......... backup/file1.txt"
             ]
 
             // Verify each record format
             for (index, record) in records.enumerated() {
                 let chars = Array(record)
-                #expect(chars.count >= 12,
+                #expect(chars.count >= 13,
                         "Record \(index) too short: \(chars.count) chars - '\(record)'")
-                if chars.count >= 12 {
-                    #expect(chars[11] == " ",
-                            "Record \(index) missing space at position 11: '\(record)' - got '\(chars[11])'")
+                if chars.count >= 13 {
+                    #expect(chars[12] == " ",
+                            "Record \(index) missing space at position 12: '\(record)' - got '\(chars[12])'")
                 }
             }
 
@@ -634,27 +634,27 @@ struct RsyncOutputRecordTests {
         func validateRecordFormat() {
             // This helper test shows the correct format
             let validRecords = [
-                // Update type, file type, 9 attribute positions, space, path
-                ">f+++++++++ file.txt", // All new
-                ".d..t...... dir/", // Dir time changed
-                "<f.st...... data.csv", // Size and time changed
-                "cL......... link", // Local symlink change
-                ".f...p..... script.sh", // Permission changed
-                ".f.stpog... web.html", // Multiple attributes
-                ".f........x file.dat", // Extended attribute
-                ".f.......a. secure.txt", // ACL changed
-                ".f.......ax both.txt" // ACL and xattr
+                // Update type, file type, 10 attribute positions, space, path
+                ">f++++++++++ file.txt", // All new
+                ".d..t....... dir/", // Dir time changed
+                "<f.st....... data.csv", // Size and time changed
+                "cL.......... link", // Local symlink change
+                ".f...p...... script.sh", // Permission changed
+                ".f.stpog.... web.html", // Multiple attributes
+                ".f........x. file.dat", // Extended attribute
+                ".f.......a.. secure.txt", // ACL changed
+                ".f.......ax. both.txt" // ACL and xattr
             ]
 
             for record in validRecords {
                 let chars = Array(record)
 
-                // Must be at least 12 characters (11 format + space + at least 1 char path)
-                #expect(chars.count >= 12, "Record too short: '\(record)'")
+                // Must be at least 13 characters (12 format + space + at least 1 char path)
+                #expect(chars.count >= 13, "Record too short: '\(record)'")
 
-                // Position 11 must be a space
-                #expect(chars[11] == " ",
-                        "Position 11 must be space in '\(record)', got '\(chars[11])'")
+                // Position 12 must be a space
+                #expect(chars[12] == " ",
+                        "Position 12 must be space in '\(record)', got '\(chars[12])'")
 
                 // Should parse successfully
                 let parsed = RsyncOutputRecord(from: record)
@@ -669,7 +669,7 @@ struct RsyncOutputRecordTests {
     struct HelperPropertyTests {
         @Test("isNewItem returns true for new files")
         func isNewItemTrue() {
-            let record = ">f+++++++++ new_file.txt"
+            let record = ">f++++++++++ new_file.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed?.isNewItem == true)
@@ -677,7 +677,7 @@ struct RsyncOutputRecordTests {
 
         @Test("isNewItem returns false for modified files")
         func isNewItemFalse() {
-            let record = ">f.st...... modified_file.txt"
+            let record = ">f.st....... modified_file.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed?.isNewItem == false)
@@ -693,7 +693,7 @@ struct RsyncOutputRecordTests {
 
         @Test("isDeletion returns false for regular files")
         func isDeletionFalse() {
-            let record = ">f+++++++++ added.txt"
+            let record = ">f++++++++++ added.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed?.isDeletion == false)
@@ -704,19 +704,19 @@ struct RsyncOutputRecordTests {
 
     @Suite("Regression Tests", .tags(.regression))
     struct RegressionTests {
-        @Test("Bug Fix: Correct character count (11 not 12)")
+        @Test("Bug Fix: Correct character count (12 not 11)")
         func bugFixCorrectCharacterCount() {
-            // Ensure we're checking for 11 characters, not 12
-            let record = ">f.st...... x.txt" // Exactly 11 chars + space + path
+            // Ensure we're checking for 12 characters, not 11
+            let record = ">f.st....... x.txt" // Exactly 12 chars + space + path
             let parsed = RsyncOutputRecord(from: record)
 
-            #expect(parsed != nil, "Should parse 11-character format correctly")
+            #expect(parsed != nil, "Should parse 12-character format correctly")
         }
 
         @Test("Bug Fix: Correct attribute positions")
         func bugFixCorrectAttributePositions() {
             // Verify ACL is at position 9, not 8
-            let record = ".f.......a. file.txt"
+            let record = ".f.......a.. file.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed?.attributes.first?.name == "acl")
@@ -725,7 +725,7 @@ struct RsyncOutputRecordTests {
         @Test("Bug Fix: Reserved position handling")
         func bugFixReservedPosition() {
             // Position 8 should be 'u' (reserved), not 'a'
-            let record = ".f......u.. file.txt"
+            let record = ".f......u... file.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed?.attributes.first?.name == "reserved")
@@ -745,7 +745,7 @@ struct RsyncOutputRecordTests {
             ("S", "special")
         ])
         func parseFileTypes(typeChar: Character, expectedLabel: String) {
-            let record = ">\(typeChar)+++++++++ test"
+            let record = ">\(typeChar)++++++++++ test"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed?.fileType == typeChar)
@@ -760,7 +760,7 @@ struct RsyncOutputRecordTests {
             (".", "NO_UPDATE")
         ])
         func parseUpdateTypes(typeChar: Character, expectedLabel: String) {
-            let record = "\(typeChar)f......... test.txt"
+            let record = "\(typeChar)f.......... test.txt"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed?.updateType == typeChar)
@@ -779,7 +779,7 @@ struct RsyncOutputRecordTests {
             (10, "x", "xattr")
         ])
         func parseIndividualAttributes(position: Int, code: Character, name: String) {
-            var chars = Array(".f.........")
+            var chars = Array(".f..........")
             chars[position] = code
             let record = String(chars) + " test.txt"
             let parsed = RsyncOutputRecord(from: record)
