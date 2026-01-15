@@ -140,8 +140,8 @@ public struct RsyncOutputRecord {
         switch updateType {
         case ".": ("NO_UPDATE", .gray)
         case "*": ("MESSAGE", .orange)
-        case ">": ("SENT", .blue)
-        case "<": ("RECEIVED", .purple)
+        case "<": ("SENT", .blue)
+        case ">": ("RECEIVED", .purple)
         case "c": ("LOCAL_CHANGE", .green)
         case "h": ("HARDLINK", .indigo)
         default: ("UNKNOWN", .red)

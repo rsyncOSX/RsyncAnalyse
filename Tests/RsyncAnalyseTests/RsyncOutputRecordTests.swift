@@ -114,8 +114,8 @@ struct RsyncOutputRecordTests {
         func parseWithVisualGuide() {
             // Visual guide for the 12-character format:
             // Position:  0 1 2 3 4 5 6 7 8 9 10 11
-            // Format:   Y X c s t p o g u a  x  
-            // Example:  > f .  s t . . . . .   .  
+            // Format:   Y X c s t p o g u a  x
+            // Example:  > f .  s t . . . . .   .
 
             let testCases: [(record: String, expectedAttrs: [String])] = [
                 (">f.st....... file1.txt", ["size", "time"]),
@@ -208,21 +208,21 @@ struct RsyncOutputRecordTests {
     struct UpdateTypeTests {
         @Test("Parse sent file")
         func parseSentFile() {
-            let record = ">f.st....... data/export.csv"
+            let record = "<f.st....... data/export.csv"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
-            #expect(parsed?.updateType == ">")
+            #expect(parsed?.updateType == "<")
             #expect(parsed?.updateTypeLabel.text == "SENT")
         }
 
         @Test("Parse received file")
         func parseReceivedFile() {
-            let record = "<f.st....... data/import.csv"
+            let record = ">f.st....... data/import.csv"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
-            #expect(parsed?.updateType == "<")
+            #expect(parsed?.updateType == ">")
             #expect(parsed?.updateTypeLabel.text == "RECEIVED")
         }
 
@@ -635,9 +635,9 @@ struct RsyncOutputRecordTests {
             // This helper test shows the correct format
             let validRecords = [
                 // Update type, file type, 10 attribute positions, space, path
-                ">f++++++++++ file.txt", // All new
+                ">f++++++++++ file.txt", // All new (received)
                 ".d..t....... dir/", // Dir time changed
-                "<f.st....... data.csv", // Size and time changed
+                "<f.st....... data.csv", // Size and time changed (sent)
                 "cL.......... link", // Local symlink change
                 ".f...p...... script.sh", // Permission changed
                 ".f.stpog.... web.html", // Multiple attributes
@@ -753,8 +753,8 @@ struct RsyncOutputRecordTests {
         }
 
         @Test("Parse various update types", arguments: [
-            (">", "SENT"),
-            ("<", "RECEIVED"),
+            ("<", "SENT"),
+            (">", "RECEIVED"),
             ("c", "LOCAL_CHANGE"),
             ("h", "HARDLINK"),
             (".", "NO_UPDATE")
