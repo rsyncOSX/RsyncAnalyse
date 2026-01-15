@@ -208,21 +208,21 @@ struct RsyncOutputRecordTests {
     struct UpdateTypeTests {
         @Test("Parse sent file")
         func parseSentFile() {
-            let record = "<f.st...... data/export.csv"
+            let record = ">f.st...... data/export.csv"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
-            #expect(parsed?.updateType == "<")
+            #expect(parsed?.updateType == ">")
             #expect(parsed?.updateTypeLabel.text == "SENT")
         }
 
         @Test("Parse received file")
         func parseReceivedFile() {
-            let record = ">f.st...... data/import.csv"
+            let record = "<f.st...... data/import.csv"
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
-            #expect(parsed?.updateType == ">")
+            #expect(parsed?.updateType == "<")
             #expect(parsed?.updateTypeLabel.text == "RECEIVED")
         }
 
@@ -753,8 +753,8 @@ struct RsyncOutputRecordTests {
         }
 
         @Test("Parse various update types", arguments: [
-            ("<", "SENT"),
-            (">", "RECEIVED"),
+            (">", "SENT"),
+            ("<", "RECEIVED"),
             ("c", "LOCAL_CHANGE"),
             ("h", "HARDLINK"),
             (".", "NO_UPDATE")
