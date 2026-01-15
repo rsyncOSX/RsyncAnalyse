@@ -9,8 +9,8 @@ import SwiftUI
 
 // MARK: - Unified Rsync Output Parser
 
-/// Unified parser for rsync itemized output format.
-/// Handles both strict 12-character format and whitespace-separated format.
+/// Unified parser for rsync itemized output format (11-character format).
+/// Format: YXcstpoguax where Y=update type, X=file type, rest=attributes
 public struct RsyncOutputRecord {
     public let path: String
     public let updateType: Character
@@ -27,25 +27,22 @@ public struct RsyncOutputRecord {
 
     /// Parse rsync output record with automatic format detection
     /// - Parameter record: Raw rsync output line
-    /// - Note: Supports both strict format (".f..t....... file.txt") and flexible format ("*deleting file.txt")
+    /// - Note: Format is 11 characters + space + path (e.g., ". f..t.. .... file.txt")
     public init?(from record: String) {
-        // Handle deletion format first
-        if record.hasPrefix("*deleting") {
-            updateType = "-"
-            fileType = "f"
+        // Handle deletion/message format:  "*deleting file.txt"
+        if record.hasPrefix("*") {
+            let components = record.split(separator: " ", maxSplits: 1)
+            guard components.count == 2 else { return nil }
+
+            updateType = "*"
+            fileType = " " // Unknown in message format
             attributes = []
-            path = record.replacingOccurrences(of: "*deleting", with: "").trimmingCharacters(in: .whitespaces)
+            path = String(components[1])
             return
         }
 
-        // Try strict 12-character format first (most common)
-        if record.count >= 13, let parsed = Self.parseStrictFormat(record) {
-            self = parsed
-            return
-        }
-
-        // Fall back to flexible whitespace-separated format
-        if let parsed = Self.parseFlexibleFormat(record) {
+        // Try strict 11-character format
+        if record.count >= 12, let parsed = Self.parseStrictFormat(record) {
             self = parsed
             return
         }
@@ -55,68 +52,62 @@ public struct RsyncOutputRecord {
 
     // MARK: - Parsing Methods
 
-    /// Parse strict 12-character rsync format: ".f..t....... file.txt"
+    /// Parse strict 11-character rsync format: ".f..t.. .... file.txt"
     private static func parseStrictFormat(_ record: String) -> RsyncOutputRecord? {
         let chars = Array(record)
-        guard chars.count >= 13, chars[12] == Character(" ") else { return nil }
+        guard chars.count >= 12, chars[11] == Character(" ") else { return nil }
 
         let updateType = chars[0]
         let fileType = chars[1]
 
         var attrs: [RsyncAttribute] = []
-        let attributePositions = [
-            (index: 2, name: "checksum", code: Character("c")),
-            (index: 3, name: "size", code: Character("s")),
-            (index: 4, name: "time", code: Character("t")),
-            (index: 5, name: "permissions", code: Character("p")),
-            (index: 6, name: "owner", code: Character("o")),
-            (index: 7, name: "group", code: Character("g")),
-            (index: 8, name: "acl", code: Character("a")),
-            (index: 9, name: "xattr", code: Character("x"))
-        ]
 
-        for position in attributePositions
-            where position.index < chars.count && chars[position.index] == position.code {
-            attrs.append(RsyncAttribute(name: position.name, code: position.code))
+        // Position 2: checksum/content
+        if chars[2] == "c" || chars[2] == "+" {
+            attrs.append(RsyncAttribute(name: "checksum", code: chars[2]))
         }
 
-        let path = String(chars.dropFirst(13)).trimmingCharacters(in: .whitespaces)
-
-        return RsyncOutputRecord(
-            path: path,
-            updateType: updateType,
-            fileType: fileType,
-            attributes: attrs
-        )
-    }
-
-    /// Parse flexible whitespace-separated format: ">f.stp file.txt"
-    private static func parseFlexibleFormat(_ record: String) -> RsyncOutputRecord? {
-        let components = record.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        guard components.count >= 2 else { return nil }
-
-        let flagChars = Array(components[0])
-        guard flagChars.count >= 2 else { return nil }
-
-        let updateType = flagChars[0]
-        let fileType = flagChars[1]
-        let path = components.dropFirst().joined(separator: " ")
-
-        var attrs: [RsyncAttribute] = []
-        let attributeMapping: [(code: Character, name: String)] = [
-            (Character("c"), "checksum"),
-            (Character("s"), "size"),
-            (Character("t"), "time"),
-            (Character("p"), "permissions"),
-            (Character("o"), "owner"),
-            (Character("g"), "group"),
-            (Character("a"), "acl"),
-            (Character("x"), "xattr")
-        ]
-
-        for (code, name) in attributeMapping where flagChars.dropFirst(2).contains(code) {
-            attrs.append(RsyncAttribute(name: name, code: code))
+        // Position 3: size
+        if chars[3] == "s" || chars[3] == "+" {
+            attrs.append(RsyncAttribute(name: "size", code: chars[3]))
         }
+
+        // Position 4: time (can be 't', 'T', or '+')
+        if chars[4] == "t" || chars[4] == "T" || chars[4] == "+" {
+            attrs.append(RsyncAttribute(name: "time", code: chars[4]))
+        }
+
+        // Position 5: permissions
+        if chars[5] == "p" || chars[5] == "+" {
+            attrs.append(RsyncAttribute(name: "permissions", code: chars[5]))
+        }
+
+        // Position 6: owner
+        if chars[6] == "o" || chars[6] == "+" {
+            attrs.append(RsyncAttribute(name: "owner", code: chars[6]))
+        }
+
+        // Position 7: group
+        if chars[7] == "g" || chars[7] == "+" {
+            attrs.append(RsyncAttribute(name: "group", code: chars[7]))
+        }
+
+        // Position 8: reserved/user (usually 'u' or '+')
+        if chars[8] == "u" || chars[8] == "+" {
+            attrs.append(RsyncAttribute(name: "reserved", code: chars[8]))
+        }
+
+        // Position 9: ACL
+        if chars.count > 9, chars[9] == "a" || chars[9] == "+" {
+            attrs.append(RsyncAttribute(name: "acl", code: chars[9]))
+        }
+
+        // Position 10: extended attributes
+        if chars.count > 10, chars[10] == "x" || chars[10] == "+" {
+            attrs.append(RsyncAttribute(name: "xattr", code: chars[10]))
+        }
+
+        let path = String(chars.dropFirst(12)).trimmingCharacters(in: .whitespaces)
 
         return RsyncOutputRecord(
             path: path,
@@ -131,26 +122,35 @@ public struct RsyncOutputRecord {
     public var fileTypeLabel: String {
         switch fileType {
         case "f": "file"
-        case "d": "dir"
-        case "L": "link"
+        case "d": "directory"
+        case "L": "symlink"
         case "D": "device"
         case "S": "special"
+        case " ": "unknown"
         default: String(fileType)
         }
     }
 
     public var updateTypeLabel: (text: String, color: Color) {
         switch updateType {
-        case ".": ("NONE", .gray)
-        case "*": ("UPDATED", .orange)
-        case "+": ("CREATED", .green)
-        case "-": ("DELETED", .red)
+        case ".": ("NO_UPDATE", .gray)
+        case "*": ("MESSAGE", .orange)
         case ">": ("RECEIVED", .blue)
         case "<": ("SENT", .purple)
+        case "c": ("LOCAL_CHANGE", .green)
         case "h": ("HARDLINK", .indigo)
-        case "?": ("ERROR", .red)
-        default: (String(updateType), .primary)
+        default: ("UNKNOWN", .red)
         }
+    }
+
+    /// Check if this record represents a new item (all attributes are '+')
+    public var isNewItem: Bool {
+        return attributes.allSatisfy { $0.code == "+" }
+    }
+
+    /// Check if this is a deletion message
+    public var isDeletion: Bool {
+        return updateType == "*" && path.isEmpty == false
     }
 }
 
