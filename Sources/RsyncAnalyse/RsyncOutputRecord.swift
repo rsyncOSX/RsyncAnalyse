@@ -9,7 +9,7 @@ import SwiftUI
 
 // MARK: - Unified Rsync Output Parser
 
-/// Unified parser for rsync itemized output format (11-character format).
+/// Unified parser for rsync itemized output format (12-character format).
 /// Format: YXcstpoguax where Y=update type, X=file type, rest=attributes
 public struct RsyncOutputRecord {
     public let path: String
@@ -27,7 +27,7 @@ public struct RsyncOutputRecord {
 
     /// Parse rsync output record with automatic format detection
     /// - Parameter record: Raw rsync output line
-    /// - Note: Format is 11 characters + space + path (e.g., ". f..t.. .... file.txt")
+    /// - Note: Format is 12 characters + space + path (e.g., ".f..t...... file.txt")
     public init?(from record: String) {
         // Handle deletion/message format:  "*deleting file.txt"
         if record.hasPrefix("*") {
@@ -41,8 +41,8 @@ public struct RsyncOutputRecord {
             return
         }
 
-        // Try strict 11-character format
-        if record.count >= 12, let parsed = Self.parseStrictFormat(record) {
+        // Try strict 12-character format
+        if record.count >= 13, let parsed = Self.parseStrictFormat(record) {
             self = parsed
             return
         }
@@ -52,10 +52,10 @@ public struct RsyncOutputRecord {
 
     // MARK: - Parsing Methods
 
-    /// Parse strict 11-character rsync format: ".f..t.. .... file.txt"
+    /// Parse strict 12-character rsync format: ".f..t...... file.txt"
     private static func parseStrictFormat(_ record: String) -> RsyncOutputRecord? {
         let chars = Array(record)
-        guard chars.count >= 12, chars[11] == Character(" ") else { return nil }
+        guard chars.count >= 13, chars[12] == Character(" ") else { return nil }
 
         let updateType = chars[0]
         let fileType = chars[1]
@@ -107,7 +107,7 @@ public struct RsyncOutputRecord {
             attrs.append(RsyncAttribute(name: "xattr", code: chars[10]))
         }
 
-        let path = String(chars.dropFirst(12)).trimmingCharacters(in: .whitespaces)
+        let path = String(chars.dropFirst(13)).trimmingCharacters(in: .whitespaces)
 
         return RsyncOutputRecord(
             path: path,
