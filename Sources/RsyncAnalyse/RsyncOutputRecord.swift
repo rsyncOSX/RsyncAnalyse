@@ -75,7 +75,8 @@ public struct RsyncOutputRecord {
             (index: 9, name: "xattr", code: Character("x"))
         ]
 
-        for position in attributePositions where position.index < chars.count && chars[position.index] == position.code {
+        for position in attributePositions
+            where position.index < chars.count && chars[position.index] == position.code {
             attrs.append(RsyncAttribute(name: position.name, code: position.code))
         }
 

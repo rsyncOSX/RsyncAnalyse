@@ -48,7 +48,6 @@ public actor ActorRsyncOutputAnalyser {
         var errors: [String] = []
         var warnings: [String] = []
 
-        // Alternative: Use components(separatedBy:)
         let lines = output.components(separatedBy: .newlines)
 
         for line in lines {
@@ -59,14 +58,12 @@ public actor ActorRsyncOutputAnalyser {
             if parsingStats {
                 statsLines.append(line)
             } else if !line.isEmpty, !line.hasPrefix("sending incremental") {
-                // Parse errors and warnings
                 if line.lowercased().contains("error") {
                     errors.append(line)
                 } else if line.lowercased().contains("warning") {
                     warnings.append(line)
                 }
 
-                // Parse itemized changes
                 if let change = parseItemizedChange(line) {
                     itemizedChanges.append(change)
                 }
@@ -88,10 +85,24 @@ public actor ActorRsyncOutputAnalyser {
         )
     }
 
-    // MARK: - Parsing Functions
+    // MARK: - Utility Functions
 
-    private func parseItemizedChange(_ line: String) -> ItemizedChange? {
-        // Handle empty or comment lines
+    public static func formatBytes(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
+    }
+
+    public static func efficiencyPercentage(statistics: Statistics) -> Double {
+        guard statistics.totalFileSize > 0 else { return 0 }
+        return (Double(statistics.totalTransferredSize) / Double(statistics.totalFileSize)) * 100.0
+    }
+}
+
+// MARK: - RsyncOutputParser Helper Functions
+
+public extension ActorRsyncOutputAnalyser {
+    func parseItemizedChange(_ line: String) -> ItemizedChange? {
         guard !line.isEmpty, !line.hasPrefix("#") else { return nil }
 
         let components = line.components(separatedBy: .whitespaces)
@@ -101,7 +112,6 @@ public actor ActorRsyncOutputAnalyser {
 
         let flagString = components[0]
 
-        // Handle deletions
         if flagString == "*deleting", components.count >= 2 {
             return ItemizedChange(
                 changeType: .deletion,
@@ -111,11 +121,9 @@ public actor ActorRsyncOutputAnalyser {
             )
         }
 
-        // Handle other itemized changes
         let changeType = parseChangeType(flagString)
         let flags = ChangeFlags(from: flagString)
 
-        // Check for symlink target
         if let arrowIndex = components.firstIndex(of: "->") {
             let path = components[1 ..< arrowIndex].joined(separator: " ")
             let target = components[(arrowIndex + 1)...].joined(separator: " ")
@@ -136,7 +144,7 @@ public actor ActorRsyncOutputAnalyser {
         }
     }
 
-    private func parseChangeType(_ flagString: String) -> ChangeType {
+    func parseChangeType(_ flagString: String) -> ChangeType {
         if flagString.contains("L") { return .symlink }
         if flagString.contains("d") { return .directory }
         if flagString.contains("f") { return .file }
@@ -145,7 +153,7 @@ public actor ActorRsyncOutputAnalyser {
         return .unknown
     }
 
-    private func parseStatistics(_ lines: [String], errors: [String], warnings: [String]) -> Statistics? {
+    func parseStatistics(_ lines: [String], errors: [String], warnings: [String]) -> Statistics? {
         var totalFiles: FileCount?
         var filesCreated: FileCount?
         var filesDeleted = 0
@@ -195,7 +203,7 @@ public actor ActorRsyncOutputAnalyser {
     }
 
     // swiftlint:disable:next function_parameter_count
-    private func parseStatisticsLine(
+    func parseStatisticsLine(
         _ line: String,
         totalFiles: inout FileCount?,
         filesCreated: inout FileCount?,
@@ -228,7 +236,7 @@ public actor ActorRsyncOutputAnalyser {
         )
     }
 
-    private func parseFileStatistics(
+    func parseFileStatistics(
         _ line: String,
         totalFiles: inout FileCount?,
         filesCreated: inout FileCount?,
@@ -247,7 +255,7 @@ public actor ActorRsyncOutputAnalyser {
     }
 
     // swiftlint:disable:next function_parameter_count
-    private func parseByteStatistics(
+    func parseByteStatistics(
         _ line: String,
         totalFileSize: inout Int64,
         totalTransferredSize: inout Int64,
@@ -274,8 +282,7 @@ public actor ActorRsyncOutputAnalyser {
         }
     }
 
-    private func parseFileCount(_ line: String) -> FileCount {
-        // Number of files: 16,087 (reg: 14,321, dir: 1,721, link: 45)
+    func parseFileCount(_ line: String) -> FileCount {
         let pattern = #"(\d+(?:,\d+)*)\s*\(reg:\s*(\d+(?:,\d+)*),\s*dir:\s*(\d+(?:,\d+)*),\s*link:\s*(\d+(?:,\d+)*)\)"#
 
         if let regex = try? NSRegularExpression(pattern: pattern),
@@ -291,16 +298,16 @@ public actor ActorRsyncOutputAnalyser {
         return FileCount(total: 0, regular: 0, directories: 0, links: 0)
     }
 
-    private func extractNumber(from line: String) -> Int {
+    func extractNumber(from line: String) -> Int {
         let numbers = line.components(separatedBy: .whitespaces)
             .compactMap { $0.replacingOccurrences(of: ",", with: "") }
             .compactMap { Int($0) }
         return numbers.first ?? 0
     }
 
-    private func extractBytes(from line: String) -> Int64 {
+    func extractBytes(from line: String) -> Int64 {
         let components = line.components(separatedBy: .whitespaces)
-        for (index, component) in components.enumerated() {
+        for component in components {
             if let value = Int64(component.replacingOccurrences(of: ",", with: "")) {
                 return value
             }
@@ -308,8 +315,7 @@ public actor ActorRsyncOutputAnalyser {
         return 0
     }
 
-    private func extractSpeedup(from line: String) -> Double {
-        // speedup is 1,865.63
+    func extractSpeedup(from line: String) -> Double {
         let pattern = #"speedup is ([\d,]+\.?\d*)"#
         if let regex = try? NSRegularExpression(pattern: pattern),
            let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
@@ -320,7 +326,7 @@ public actor ActorRsyncOutputAnalyser {
         return 0.0
     }
 
-    private func extractNumberFromMatch(_ text: String, _ match: NSTextCheckingResult, at index: Int) -> Int {
+    func extractNumberFromMatch(_ text: String, _ match: NSTextCheckingResult, at index: Int) -> Int {
         if let range = Range(match.range(at: index), in: text) {
             let numberString = String(text[range]).replacingOccurrences(of: ",", with: "")
             return Int(numberString) ?? 0
@@ -328,17 +334,16 @@ public actor ActorRsyncOutputAnalyser {
         return 0
     }
 
-    // MARK: - Utility Functions
+    func analyzeThrowing(_ output: String) throws -> AnalysisResult {
+        guard !output.isEmpty else {
+            throw RsyncAnalysisError.emptyOutput
+        }
 
-    public static func formatBytes(_ bytes: Int64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: bytes)
-    }
+        guard let result = analyzeOutput(output) else {
+            throw RsyncAnalysisError.parsingFailed("Failed to parse rsync output")
+        }
 
-    public static func efficiencyPercentage(statistics: Statistics) -> Double {
-        guard statistics.totalFileSize > 0 else { return 0 }
-        return (Double(statistics.totalTransferredSize) / Double(statistics.totalFileSize)) * 100.0
+        return result
     }
 }
 
@@ -361,20 +366,5 @@ public enum RsyncAnalysisError: Error, LocalizedError {
         case let .parsingFailed(reason):
             "Failed to parse rsync output: \(reason)"
         }
-    }
-}
-
-// Optional throwing version
-public extension ActorRsyncOutputAnalyser {
-    func analyzeThrowing(_ output: String) throws -> AnalysisResult {
-        guard !output.isEmpty else {
-            throw RsyncAnalysisError.emptyOutput
-        }
-
-        guard let result = analyzeOutput(output) else {
-            throw RsyncAnalysisError.parsingFailed("Failed to parse rsync output")
-        }
-
-        return result
     }
 }
