@@ -62,47 +62,47 @@ public struct RsyncOutputRecord {
 
         var attrs: [RsyncAttribute] = []
 
-        // Position 2: checksum/content
+        // Position 3: checksum/content
         if chars[2] == "c" || chars[2] == "+" {
             attrs.append(RsyncAttribute(name: "checksum", code: chars[2]))
         }
 
-        // Position 3: size
+        // Position 4: size
         if chars[3] == "s" || chars[3] == "+" {
             attrs.append(RsyncAttribute(name: "size", code: chars[3]))
         }
 
-        // Position 4: time (can be 't', 'T', or '+')
+        // Position 5: time (can be 't', 'T', or '+')
         if chars[4] == "t" || chars[4] == "T" || chars[4] == "+" {
             attrs.append(RsyncAttribute(name: "time", code: chars[4]))
         }
 
-        // Position 5: permissions
+        // Position 6: permissions
         if chars[5] == "p" || chars[5] == "+" {
             attrs.append(RsyncAttribute(name: "permissions", code: chars[5]))
         }
 
-        // Position 6: owner
+        // Position 7: owner
         if chars[6] == "o" || chars[6] == "+" {
             attrs.append(RsyncAttribute(name: "owner", code: chars[6]))
         }
 
-        // Position 7: group
+        // Position 8: group
         if chars[7] == "g" || chars[7] == "+" {
             attrs.append(RsyncAttribute(name: "group", code: chars[7]))
         }
 
-        // Position 8: reserved/user (usually 'u' or '+')
+        // Position 9: reserved/user (usually 'u' or '+')
         if chars[8] == "u" || chars[8] == "+" {
             attrs.append(RsyncAttribute(name: "reserved", code: chars[8]))
         }
 
-        // Position 9: ACL
+        // Position 10: ACL
         if chars[9] == "a" || chars[9] == "+" {
             attrs.append(RsyncAttribute(name: "acl", code: chars[9]))
         }
 
-        // Position 10: extended attributes
+        // Position 11: extended attributes
         if chars[10] == "x" || chars[10] == "+" {
             attrs.append(RsyncAttribute(name: "xattr", code: chars[10]))
         }
