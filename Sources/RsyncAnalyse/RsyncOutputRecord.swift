@@ -33,7 +33,7 @@ public struct RsyncOutputRecord {
         if record.hasPrefix("*deleting ") {
             let path = String(record.dropFirst(10)) // Remove "*deleting "
             
-            updateType = "*"
+            updateType = "d"
             fileType = " " // Unknown in message format
             attributes = []
             self.path = path
@@ -139,6 +139,7 @@ public struct RsyncOutputRecord {
         switch updateType {
         case ".": ("NO_UPDATE", .gray)
         case "*": ("MESSAGE", .red)
+        case "d": ("DELETE", .red)
         case "<": ("SENT", .blue)
         case ">": ("RECEIVED", .purple)
         case "c": ("LOCAL_CHANGE", .green)
@@ -154,7 +155,7 @@ public struct RsyncOutputRecord {
 
     /// Check if this is a deletion message
     public var isDeletion: Bool {
-        return updateType == "*" && path.isEmpty == false
+        return updateType == "d" && path.isEmpty == false
     }
 }
 

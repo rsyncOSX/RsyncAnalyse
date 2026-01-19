@@ -267,10 +267,10 @@ struct RsyncOutputRecordTests {
             let parsed = RsyncOutputRecord(from: record)
 
             #expect(parsed != nil)
-            #expect(parsed?.updateType == "*")
+            #expect(parsed?.updateType == "d")
             #expect(parsed?.path == "old/obsolete.txt")
             #expect(parsed?.isDeletion == true)
-            #expect(parsed?.updateTypeLabel.text == "MESSAGE")
+            #expect(parsed?.updateTypeLabel.text == "DELETE")
         }
 
         @Test("Parse deletion with path containing spaces")
