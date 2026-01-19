@@ -30,14 +30,13 @@ public struct RsyncOutputRecord {
     /// - Note: Format is 12 characters + space + path (e.g., ".f..t...... file.txt")
     public init?(from record: String) {
         // Handle deletion/message format:  "*deleting file.txt"
-        if record.hasPrefix("*") {
-            let components = record.split(separator: " ", maxSplits: 1)
-            guard components.count == 2 else { return nil }
-
+        if record.hasPrefix("*deleting ") {
+            let path = String(record.dropFirst(10)) // Remove "*deleting "
+            
             updateType = "*"
             fileType = " " // Unknown in message format
             attributes = []
-            path = String(components[1])
+            self.path = path
             return
         }
 
@@ -139,7 +138,7 @@ public struct RsyncOutputRecord {
     public var updateTypeLabel: (text: String, color: Color) {
         switch updateType {
         case ".": ("NO_UPDATE", .gray)
-        case "*": ("MESSAGE", .orange)
+        case "*": ("MESSAGE", .red)
         case "<": ("SENT", .blue)
         case ">": ("RECEIVED", .purple)
         case "c": ("LOCAL_CHANGE", .green)
