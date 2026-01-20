@@ -16,6 +16,7 @@ public struct RsyncOutputRecord {
     public let updateType: Character
     public let fileType: Character
     public let attributes: [RsyncAttribute]
+    public var message: String?
 
     /// Initialize with explicit values
     public init(path: String, updateType: Character, fileType: Character, attributes: [RsyncAttribute]) {
@@ -23,6 +24,7 @@ public struct RsyncOutputRecord {
         self.updateType = updateType
         self.fileType = fileType
         self.attributes = attributes
+        self.message = nil
     }
 
     /// Parse rsync output record with automatic format detection
@@ -30,14 +32,29 @@ public struct RsyncOutputRecord {
     /// - Note: Format is 12 characters + space + path (e.g., ".f..t...... file.txt")
     public init?(from record: String) {
         // Handle deletion/message format:  "*deleting file.txt"
-        if record.hasPrefix("*deleting ") {
-            let path = String(record.dropFirst(10)) // Remove "*deleting "
+        // Other messages may be: *received, *unsafe, *skip-over
+        // I exepcet the message to be followed by a space like the "*deleting file.txt"
+        // Strip of the star and set the public message to use as label
+        if record.hasPrefix("*") {
+            // 1. Drop the "*"
+            let content = record.dropFirst()
             
-            updateType = "d"
-            fileType = " " // Unknown in message format
-            attributes = []
-            self.path = path
-            return
+            // 2. Split into 2 parts: the message and the rest (the path)
+            // maxSplits: 1 ensures we only split at the first space
+            let parts = content.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+            
+            if parts.count >= 2 {
+                let msg = String(parts[0]) // e.g., "deleting"
+                let path = String(parts[1])    // e.g., "path/to/file.txt"
+
+                self.path = path
+                self.updateType = "*"
+                self.fileType = " "
+                self.attributes = []
+                self.message = msg
+                return
+            }
+            return nil
         }
 
         // Try strict 12-character format
@@ -138,7 +155,10 @@ public struct RsyncOutputRecord {
     public var updateTypeLabel: (text: String, color: Color) {
         switch updateType {
         case ".": ("NO_UPDATE", .gray)
-        case "*": ("MESSAGE", .red)
+        case "*": {
+            let msg = self.message ?? "MESSAGE"
+            return (msg, .red)
+        }()
         case "d": ("DELETE", .red)
         case "<": ("SENT", .blue)
         case ">": ("RECEIVED", .purple)
@@ -155,7 +175,7 @@ public struct RsyncOutputRecord {
 
     /// Check if this is a deletion message
     public var isDeletion: Bool {
-        return updateType == "d" && path.isEmpty == false
+        return updateType == "*" && path.isEmpty == false
     }
 }
 
