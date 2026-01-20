@@ -36,27 +36,23 @@ public struct RsyncOutputRecord {
         // I exepcet the message to be followed by a space like the "*deleting file.txt"
         // Strip of the star and set the public message to use as label
         if record.hasPrefix("*") {
-            // 1. Drop the "*"
             let content = record.dropFirst()
             
-            // 2. Split into 2 parts: the message and the rest (the path)
-            // maxSplits: 1 ensures we only split at the first space
-            let parts = content.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
-            
-            if parts.count >= 2 {
-                let msg = String(parts[0]) // e.g., "deleting"
-                let path = String(parts[1])    // e.g., "path/to/file.txt"
-
-                self.path = path
+            // Find the first space after the "*"
+            if let spaceIndex = content.firstIndex(of: " ") {
+                let msg = content[..<spaceIndex]
+                let path = content[content.index(after: spaceIndex)...]
+                
+                self.path = String(path)
                 self.updateType = "*"
                 self.fileType = " "
                 self.attributes = []
-                self.message = msg
+                self.message = String(msg)
                 return
             }
             return nil
         }
-
+        
         // Try strict 12-character format
         if record.count >= 13, let parsed = Self.parseStrictFormat(record) {
             self = parsed
