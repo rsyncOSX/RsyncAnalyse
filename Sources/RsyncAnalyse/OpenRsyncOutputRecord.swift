@@ -1,0 +1,118 @@
+//
+//  OpenRsyncOutputRecord.swift
+//  RsyncAnalyse
+//
+//  Created by Thomas Evensen on 09/02/2026.
+//
+
+
+/// Unified parser for openrsync itemized output format (10-character format).
+/// Format: YXcstpogz where Y=update type, X=file type, rest=attributes
+public struct OpenRsyncOutputRecord {
+    public let path: String
+    public let updateType: Character
+    public let fileType: Character
+    public let attributes: [RsyncAttribute]
+    public var message: String?
+    
+    /// Initialize with explicit values
+    public init(path: String, updateType: Character, fileType: Character, attributes: [RsyncAttribute]) {
+        self.path = path
+        self.updateType = updateType
+        self.fileType = fileType
+        self.attributes = attributes
+        self.message = nil
+    }
+    
+    /// Parse rsync output record with automatic format detection
+    /// - Parameter record: Raw rsync output line
+    /// - Note: Format is 10 characters + space + path (e.g., ".f..t.... file.txt")
+    public init?(from record: String) {
+        // Handle deletion/message format:  "*deleting file.txt"
+        // Other messages may be: *received, *unsafe, *skip-over
+        // I exepcet the message to be followed by a space like the "*deleting file.txt"
+        // Strip of the star and set the public message to use as label
+        if record.hasPrefix("*") {
+            let content = record.dropFirst()
+            
+            // Find the first space after the "*"
+            if let spaceIndex = content.firstIndex(of: " ") {
+                let msg = content[..<spaceIndex]
+                let path = content[content.index(after: spaceIndex)...]
+                
+                self.path = String(path)
+                self.updateType = "*"
+                self.fileType = " "
+                self.attributes = []
+                self.message = String(msg)
+                return
+            }
+            return nil
+        }
+        
+        // Try strict 10-character format
+        if record.count >= 11, let parsed = Self.parseStrictFormat(record) {
+            self = parsed
+            return
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Parsing Methods
+    
+    /// Parse strict 10-character rsync format: ".f..t.... file.txt"
+    private static func parseStrictFormat(_ record: String) -> OpenRsyncOutputRecord? {
+        let chars = Array(record)
+        guard chars.count >= 10, chars[10] == Character(" ") else { return nil }
+        
+        let updateType = chars[0]
+        let fileType = chars[1]
+        
+        var attrs: [RsyncAttribute] = []
+        
+        // Position 3: checksum/content
+        if chars[2] == "c" || chars[2] == "+" {
+            attrs.append(RsyncAttribute(name: "checksum", code: chars[2]))
+        }
+        
+        // Position 4: size
+        if chars[3] == "s" || chars[3] == "+" {
+            attrs.append(RsyncAttribute(name: "size", code: chars[3]))
+        }
+        
+        // Position 5: time (can be 't', 'T', or '+')
+        if chars[4] == "t" || chars[4] == "T" || chars[4] == "+" {
+            attrs.append(RsyncAttribute(name: "time", code: chars[4]))
+        }
+        
+        // Position 6: permissions
+        if chars[5] == "p" || chars[5] == "+" {
+            attrs.append(RsyncAttribute(name: "permissions", code: chars[5]))
+        }
+        
+        // Position 7: owner
+        if chars[6] == "o" || chars[6] == "+" {
+            attrs.append(RsyncAttribute(name: "owner", code: chars[6]))
+        }
+        
+        // Position 8: group
+        if chars[7] == "g" || chars[7] == "+" {
+            attrs.append(RsyncAttribute(name: "group", code: chars[7]))
+        }
+        
+        // Position 9: compressed
+        if chars[8] == "z" || chars[8] == "+" {
+            attrs.append(RsyncAttribute(name: "reserved", code: chars[8]))
+        }
+        
+        let path = String(chars.dropFirst(10)).trimmingCharacters(in: .whitespaces)
+        
+        return OpenRsyncOutputRecord(
+            path: path,
+            updateType: updateType,
+            fileType: fileType,
+            attributes: attrs
+        )
+    }
+}
