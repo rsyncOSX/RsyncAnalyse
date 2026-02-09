@@ -5,6 +5,7 @@
 //  Created by Thomas Evensen on 09/02/2026.
 //
 
+import SwiftUI
 
 /// Unified parser for openrsync itemized output format (10-character format).
 /// Format: YXcstpogz where Y=update type, X=file type, rest=attributes
@@ -114,5 +115,45 @@ public struct OpenRsyncOutputRecord {
             fileType: fileType,
             attributes: attrs
         )
+    }
+    
+    // MARK: - Computed Properties
+
+    public var fileTypeLabel: String {
+        switch fileType {
+        case "f": "file"
+        case "d": "directory"
+        case "L": "symlink"
+        case "D": "device"
+        case "S": "special"
+        case " ": "unknown"
+        default: String(fileType)
+        }
+    }
+
+    public var updateTypeLabel: (text: String, color: Color) {
+        switch updateType {
+        case ".": ("NO_UPDATE", .gray)
+        case "*": {
+            let msg = self.message ?? "MESSAGE"
+            return (msg, .red)
+        }()
+        case "d": ("DELETE", .red)
+        case "<": ("SENT", .blue)
+        case ">": ("RECEIVED", .purple)
+        case "c": ("LOCAL_CHANGE", .green)
+        case "h": ("HARDLINK", .indigo)
+        default: ("UNKNOWN", .red)
+        }
+    }
+
+    /// Check if this record represents a new item (all attributes are '+')
+    public var isNewItem: Bool {
+        return attributes.allSatisfy { $0.code == "+" }
+    }
+
+    /// Check if this is a deletion message
+    public var isDeletion: Bool {
+        return updateType == "*" && path.isEmpty == false
     }
 }

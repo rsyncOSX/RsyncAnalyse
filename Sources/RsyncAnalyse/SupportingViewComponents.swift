@@ -7,6 +7,62 @@
 
 import SwiftUI
 
+
+public struct OpenRsyncOutputRowView: View {
+    let record: String
+
+    public init(record: String) {
+        self.record = record
+    }
+
+    public var body: some View {
+        if let parsed = OpenRsyncOutputRecord(from: record) {
+            ParsedOpenRsyncRow(parsed: parsed)
+        } else {
+            // Unparseable output - show as plain text
+            Text(record)
+                .font(.caption)
+                .textSelection(.enabled)
+        }
+    }
+}
+
+// MARK: - Parsed Row Component
+
+public struct ParsedOpenRsyncRow: View {
+    let parsed: OpenRsyncOutputRecord
+
+    public init(parsed: OpenRsyncOutputRecord) {
+        self.parsed = parsed
+    }
+
+    public var body: some View {
+        HStack(spacing: 6) {
+            // Update type tag
+            UpdateTypeTag(updateTypeLabel: parsed.updateTypeLabel)
+
+            // File type tag
+            FileTypeTag(fileTypeLabel: parsed.fileTypeLabel)
+
+            // Changed attributes
+            if !parsed.attributes.isEmpty {
+                ForEach(parsed.attributes) { attr in
+                    AttributeBadge(name: attr.name)
+                }
+            }
+
+            // Path
+            Text(parsed.path)
+                .lineLimit(1)
+                .font(.caption)
+                .textSelection(.enabled)
+        }
+    }
+}
+
+
+
+
 // MARK: - Row View Component
 
 public struct RsyncOutputRowView: View {
