@@ -1,5 +1,5 @@
 //
-//  OpenRsyncOutputRecord.swift
+//  OpenRsyncOutpuRetcord.swift
 //  RsyncAnalyse
 //
 //  Created by Thomas Evensen on 09/02/2026.
