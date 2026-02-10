@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-/// Unified parser for openrsync itemized output format (10-character format).
-/// Format: YXcstpogz where Y=update type, X=file type, rest=attributes
+/// Unified parser for openrsync itemized output format (9-character format).
+/// Format: YXcstpogz where Y=update type, X=file type, c-z=attributes (7 positions)
+/// Total format length: 9 characters + space + path
 public struct OpenRsyncOutputRecord {
     public let path: String
     public let updateType: Character
@@ -25,9 +26,9 @@ public struct OpenRsyncOutputRecord {
         self.message = nil
     }
     
-    /// Parse rsync output record with automatic format detection
-    /// - Parameter record: Raw rsync output line
-    /// - Note: Format is 10 characters + space + path (e.g., ".f..t.... file.txt")
+    /// Parse openrsync output record with automatic format detection
+    /// - Parameter record: Raw openrsync output line
+    /// - Note: Format is 9 characters + space + path (e.g., ".f..t.... file.txt")
     public init?(from record: String) {
         // Handle deletion/message format:  "*deleting file.txt"
         // Other messages may be: *received, *unsafe, *skip-over
@@ -51,8 +52,8 @@ public struct OpenRsyncOutputRecord {
             return nil
         }
         
-        // Try strict 10-character format
-        if record.count >= 11, let parsed = Self.parseStrictFormat(record) {
+        // Try strict 9-character format
+        if record.count >= 10, let parsed = Self.parseStrictFormat(record) {
             self = parsed
             return
         }
@@ -62,10 +63,10 @@ public struct OpenRsyncOutputRecord {
     
     // MARK: - Parsing Methods
     
-    /// Parse strict 10-character rsync format: ".f..t.... file.txt"
+    /// Parse strict 9-character openrsync format: ".f..t.... file.txt"
     private static func parseStrictFormat(_ record: String) -> OpenRsyncOutputRecord? {
         let chars = Array(record)
-        guard chars.count >= 10, chars[10] == Character(" ") else { return nil }
+        guard chars.count >= 10, chars[9] == Character(" ") else { return nil }
         
         let updateType = chars[0]
         let fileType = chars[1]
@@ -102,7 +103,7 @@ public struct OpenRsyncOutputRecord {
             attrs.append(RsyncAttribute(name: "group", code: chars[7]))
         }
         
-        // Position 9: compressed
+        // Position 9: reserved/compressed (z)
         if chars[8] == "z" || chars[8] == "+" {
             attrs.append(RsyncAttribute(name: "reserved", code: chars[8]))
         }
@@ -118,7 +119,7 @@ public struct OpenRsyncOutputRecord {
     }
     
     // MARK: - Computed Properties
-
+    
     public var fileTypeLabel: String {
         switch fileType {
         case "f": "file"
@@ -130,7 +131,7 @@ public struct OpenRsyncOutputRecord {
         default: String(fileType)
         }
     }
-
+    
     public var updateTypeLabel: (text: String, color: Color) {
         switch updateType {
         case ".": ("NO_UPDATE", .gray)
@@ -146,12 +147,12 @@ public struct OpenRsyncOutputRecord {
         default: ("UNKNOWN", .red)
         }
     }
-
+    
     /// Check if this record represents a new item (all attributes are '+')
     public var isNewItem: Bool {
         return attributes.allSatisfy { $0.code == "+" }
     }
-
+    
     /// Check if this is a deletion message
     public var isDeletion: Bool {
         return updateType == "*" && path.isEmpty == false
