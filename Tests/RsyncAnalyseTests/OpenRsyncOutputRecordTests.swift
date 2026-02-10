@@ -367,7 +367,7 @@ struct OpenRsyncOutputRecordTests {
             #expect(parsed?.attributes.first?.name == "reserved")
             #expect(parsed?.attributes.first?.code == "z")
         }
-        
+
         @Test("Parse reserved as plus")
         func parseReservedAsPlus() {
             let record = ".f......+ file_new_reserved.txt"
@@ -704,9 +704,9 @@ struct OpenRsyncOutputRecordTests {
             // Verify space is at position 9 in 9-character format
             let record = ".f..t.... file.txt"
             let chars = Array(record)
-            
+
             #expect(chars[9] == " ", "Space must be at position 9 for 9-character format")
-            
+
             let parsed = OpenRsyncOutputRecord(from: record)
             #expect(parsed != nil, "Should parse correctly with space at position 9")
         }
@@ -775,7 +775,7 @@ struct OpenRsyncOutputRecordTests {
             #expect(parsed?.attributes.contains { $0.name == name && $0.code == code } == true,
                     "Should have \(name) attribute with code \(code)")
         }
-        
+
         @Test("Verify all attribute positions", arguments: [
             ("checksum", 2),
             ("size", 3),
@@ -792,7 +792,7 @@ struct OpenRsyncOutputRecordTests {
             var testChars = chars
             testChars[expectedPosition] = "+"
             let record = String(testChars) + " test.txt"
-            
+
             let parsed = OpenRsyncOutputRecord(from: record)
             #expect(parsed != nil)
             #expect(parsed?.attributes.count == 1)
@@ -814,18 +814,18 @@ struct OpenRsyncOutputRecordTests {
 
             #expect(parsed?.attributes.count == 7, "OpenRsync should have 7 attributes for new items")
         }
-        
+
         @Test("OpenRsync format is 9 characters")
         func verifyFormatLength() {
             let record = ">f.st.... file.txt"
             let chars = Array(record)
-            
+
             // Verify format is exactly 9 characters before space
             let formatPart = String(chars.prefix(9))
             #expect(formatPart.count == 9)
             #expect(chars[9] == " ")
         }
-        
+
         @Test("OpenRsync does not have ACL or xattr positions")
         func verifyMissingExtendedAttributes() {
             // OpenRsync format stops at position 8 (reserved/z)

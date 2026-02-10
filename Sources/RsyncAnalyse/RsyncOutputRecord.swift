@@ -24,7 +24,7 @@ public struct RsyncOutputRecord {
         self.updateType = updateType
         self.fileType = fileType
         self.attributes = attributes
-        self.message = nil
+        message = nil
     }
 
     /// Parse rsync output record with automatic format detection
@@ -37,22 +37,22 @@ public struct RsyncOutputRecord {
         // Strip of the star and set the public message to use as label
         if record.hasPrefix("*") {
             let content = record.dropFirst()
-            
+
             // Find the first space after the "*"
             if let spaceIndex = content.firstIndex(of: " ") {
                 let msg = content[..<spaceIndex]
                 let path = content[content.index(after: spaceIndex)...]
-                
+
                 self.path = String(path)
-                self.updateType = "*"
-                self.fileType = " "
-                self.attributes = []
-                self.message = String(msg)
+                updateType = "*"
+                fileType = " "
+                attributes = []
+                message = String(msg)
                 return
             }
             return nil
         }
-        
+
         // Try strict 12-character format
         if record.count >= 13, let parsed = Self.parseStrictFormat(record) {
             self = parsed
@@ -152,9 +152,9 @@ public struct RsyncOutputRecord {
         switch updateType {
         case ".": ("NO_UPDATE", .gray)
         case "*": {
-            let msg = self.message ?? "MESSAGE"
-            return (msg, .red)
-        }()
+                let msg = self.message ?? "MESSAGE"
+                return (msg, .red)
+            }()
         case "d": ("DELETE", .red)
         case "<": ("SENT", .blue)
         case ">": ("RECEIVED", .purple)
