@@ -788,6 +788,140 @@ struct RsyncOutputRecordTests {
             #expect(parsed?.attributes.contains { $0.name == name && $0.code == code } == true)
         }
     }
+
+    // MARK: - rsync 3.4.1 (13-char prefix) Tests
+
+    @Suite("rsync 3.4.1 — 13-char format")
+    struct V341FormatTests {
+        @Test("Parse new file with all attributes new")
+        func parseNewFile() {
+            // 13-char prefix: >f + 11 plusses
+            let record = ">f+++++++++++ documents/report.pdf"
+            let parsed = RsyncOutputRecord(from: record)
+
+            #expect(parsed != nil)
+            #expect(parsed?.version == .v341)
+            #expect(parsed?.updateType == ">")
+            #expect(parsed?.fileType == "f")
+            #expect(parsed?.path == "documents/report.pdf")
+            #expect(parsed?.attributes.count == 11)
+            #expect(parsed?.isNewItem == true)
+            #expect(parsed?.fileTypeLabel == "file")
+        }
+
+        @Test("Parse file with size and time change")
+        func parseFileWithSizeAndTimeChange() {
+            // Layout: Y X c s t p o g n u a x ?
+            //         0 1 2 3 4 5 6 7 8 9 A B C
+            let record = ">f.st........ images/photo.jpg"
+
+            let chars = Array(record)
+            #expect(chars.count > 13 && chars[13] == " ", "Position 13 should be space")
+
+            let parsed = RsyncOutputRecord(from: record)
+
+            #expect(parsed != nil)
+            #expect(parsed?.version == .v341)
+            #expect(parsed?.path == "images/photo.jpg")
+            #expect(parsed?.attributes.count == 2)
+            let attrNames = parsed?.attributes.map { $0.name }.sorted()
+            #expect(attrNames == ["size", "time"])
+        }
+
+        @Test("Parse namespace attribute")
+        func parseNamespaceAttribute() {
+            // Position 8 = 'n' (namespace)
+            let record = ".f......n.... config/policy.conf"
+            let parsed = RsyncOutputRecord(from: record)
+
+            #expect(parsed != nil)
+            #expect(parsed?.version == .v341)
+            #expect(parsed?.path == "config/policy.conf")
+            #expect(parsed?.attributes.count == 1)
+            #expect(parsed?.attributes.first?.name == "namespace")
+            #expect(parsed?.attributes.first?.code == "n")
+        }
+
+        @Test("Parse directory with timestamp change")
+        func parseDirectoryTimestampChange() {
+            let record = ".d..t........ src/components/"
+            let parsed = RsyncOutputRecord(from: record)
+
+            #expect(parsed != nil)
+            #expect(parsed?.version == .v341)
+            #expect(parsed?.fileType == "d")
+            #expect(parsed?.path == "src/components/")
+            #expect(parsed?.attributes.count == 1)
+            #expect(parsed?.attributes.first?.name == "time")
+            #expect(parsed?.fileTypeLabel == "directory")
+        }
+
+        @Test("Parse all-new directory")
+        func parseAllNewDirectory() {
+            let record = "cd+++++++++++ backup/2024/"
+            let parsed = RsyncOutputRecord(from: record)
+
+            #expect(parsed != nil)
+            #expect(parsed?.version == .v341)
+            #expect(parsed?.updateType == "c")
+            #expect(parsed?.fileType == "d")
+            #expect(parsed?.path == "backup/2024/")
+            #expect(parsed?.isNewItem == true)
+        }
+
+        @Test("Parse individual attributes", arguments: [
+            (2, Character("c"), "checksum"),
+            (3, Character("s"), "size"),
+            (4, Character("t"), "time"),
+            (5, Character("p"), "permissions"),
+            (6, Character("o"), "owner"),
+            (7, Character("g"), "group"),
+            (8, Character("n"), "namespace"),
+            (9, Character("u"), "reserved"),
+            (10, Character("a"), "acl"),
+            (11, Character("x"), "xattr")
+        ])
+        func parseIndividualAttributes(position: Int, code: Character, name: String) {
+            var chars = Array(".f...........") // 13 chars
+            chars[position] = code
+            let record = String(chars) + " test.txt"
+            let parsed = RsyncOutputRecord(from: record)
+
+            #expect(parsed != nil)
+            #expect(parsed?.version == .v341)
+            #expect(parsed?.attributes.contains { $0.name == name && $0.code == code } == true)
+        }
+    }
+
+    // MARK: - Version Detector Tests
+
+    @Suite("detectRsyncVersion")
+    struct DetectVersionTests {
+        @Test("Detects v3.4.2 from 12-char prefix")
+        func detectsV342() {
+            #expect(RsyncOutputRecord.detectRsyncVersion(">f.st....... a.txt") == .v342)
+            #expect(RsyncOutputRecord.detectRsyncVersion(".f.......... b") == .v342)
+        }
+
+        @Test("Detects v3.4.1 from 13-char prefix")
+        func detectsV341() {
+            #expect(RsyncOutputRecord.detectRsyncVersion(">f.st........ a.txt") == .v341)
+            #expect(RsyncOutputRecord.detectRsyncVersion(".f........... b") == .v341)
+        }
+
+        @Test("Returns nil for openrsync 9-char prefix")
+        func rejectsOpenRsync() {
+            #expect(RsyncOutputRecord.detectRsyncVersion(">f.st.... file.txt") == nil)
+        }
+
+        @Test("Returns nil for malformed input")
+        func rejectsMalformed() {
+            #expect(RsyncOutputRecord.detectRsyncVersion("") == nil)
+            #expect(RsyncOutputRecord.detectRsyncVersion("short") == nil)
+            // No space at index 12 or 13
+            #expect(RsyncOutputRecord.detectRsyncVersion("noSpaceForLong file.txt") == nil)
+        }
+    }
 }
 
 extension Tag {

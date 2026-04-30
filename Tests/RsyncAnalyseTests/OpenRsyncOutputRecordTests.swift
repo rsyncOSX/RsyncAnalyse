@@ -629,7 +629,7 @@ struct OpenRsyncOutputRecordTests {
                 ".f...p... script.sh", // Permission changed
                 ".f.stpog. web.html", // Multiple attributes
                 ".f......z file.dat", // Reserved position
-                ".fc..... secure.txt" // Checksum changed
+                ".fc...... secure.txt" // Checksum changed
             ]
 
             for record in validRecords {

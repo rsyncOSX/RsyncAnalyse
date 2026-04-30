@@ -7,38 +7,50 @@
 
 import SwiftUI
 
+// MARK: - Rsync Version
+
+public enum RsyncVersion {
+    case v341 // 13-char attribute prefix (includes namespace 'n' at position 8)
+    case v342 // 12-char attribute prefix
+}
+
 // MARK: - Unified Rsync Output Parser
 
-/// Unified parser for rsync itemized output format (12-character format).
-/// Format: YXcstpoguax where Y=update type, X=file type, rest=attributes
+/// Unified parser for rsync itemized output.
+/// Supports both rsync 3.4.2 (12-char attribute prefix) and rsync 3.4.1 (13-char attribute prefix).
+/// Format: YX<attrs> where Y=update type, X=file type, followed by space + path.
 public struct RsyncOutputRecord {
     public let path: String
     public let updateType: Character
     public let fileType: Character
     public let attributes: [RsyncAttribute]
+    public let version: RsyncVersion?
     public var message: String?
 
     /// Initialize with explicit values
-    public init(path: String, updateType: Character, fileType: Character, attributes: [RsyncAttribute]) {
+    public init(path: String,
+                updateType: Character,
+                fileType: Character,
+                attributes: [RsyncAttribute],
+                version: RsyncVersion? = nil) {
         self.path = path
         self.updateType = updateType
         self.fileType = fileType
         self.attributes = attributes
+        self.version = version
         message = nil
     }
 
-    /// Parse rsync output record with automatic format detection
+    /// Parse rsync output record with automatic format detection.
     /// - Parameter record: Raw rsync output line
-    /// - Note: Format is 12 characters + space + path (e.g., ".f..t...... file.txt")
+    /// - Note: Format is 12 or 13 characters + space + path, depending on rsync version.
     public init?(from record: String) {
         // Handle deletion/message format:  "*deleting file.txt"
         // Other messages may be: *received, *unsafe, *skip-over
-        // I exepcet the message to be followed by a space like the "*deleting file.txt"
-        // Strip of the star and set the public message to use as label
+        // Strip the star and set the public message to use as label.
         if record.hasPrefix("*") {
             let content = record.dropFirst()
 
-            // Find the first space after the "*"
             if let spaceIndex = content.firstIndex(of: " ") {
                 let msg = content[..<spaceIndex]
                 let path = content[content.index(after: spaceIndex)...]
@@ -47,82 +59,77 @@ public struct RsyncOutputRecord {
                 updateType = "*"
                 fileType = " "
                 attributes = []
+                version = nil
                 message = String(msg)
                 return
             }
             return nil
         }
 
-        // Try strict 12-character format
-        if record.count >= 13, let parsed = Self.parseStrictFormat(record) {
-            self = parsed
-            return
+        switch Self.detectRsyncVersion(record) {
+        case .v342:
+            if let parsed = Self.parseV342(record) {
+                self = parsed
+                return
+            }
+        case .v341:
+            if let parsed = Self.parseV341(record) {
+                self = parsed
+                return
+            }
+        case .none:
+            return nil
         }
 
         return nil
     }
 
+    // MARK: - Version Detection
+
+    /// Detect rsync version from the position of the trailing space in the attribute prefix.
+    /// - 12-char prefix → space at index 12 → rsync 3.4.2
+    /// - 13-char prefix → space at index 13 → rsync 3.4.1
+    public static func detectRsyncVersion(_ record: String) -> RsyncVersion? {
+        let chars = Array(record)
+        if chars.count >= 13, chars[12] == " " { return .v342 }
+        if chars.count >= 14, chars[13] == " " { return .v341 }
+        return nil
+    }
+
     // MARK: - Parsing Methods
 
-    /// Parse strict 12-character rsync format: ".f..t...... file.txt"
-    private static func parseStrictFormat(_ record: String) -> RsyncOutputRecord? {
+    private static func appendAttr(_ attrs: inout [RsyncAttribute],
+                                   name: String,
+                                   code: Character,
+                                   expected: Character) {
+        if code == expected || code == "+" {
+            attrs.append(RsyncAttribute(name: name, code: code))
+        }
+    }
+
+    /// Parse rsync 3.4.2 format: 12-char prefix + space + path (e.g., ".f..t....... file.txt")
+    /// Layout: Y X c s t p o g u a x ?
+    private static func parseV342(_ record: String) -> RsyncOutputRecord? {
         let chars = Array(record)
-        guard chars.count >= 13, chars[12] == Character(" ") else { return nil }
+        guard chars.count >= 13, chars[12] == " " else { return nil }
 
         let updateType = chars[0]
         let fileType = chars[1]
 
         var attrs: [RsyncAttribute] = []
-
-        // Position 3: checksum/content
-        if chars[2] == "c" || chars[2] == "+" {
-            attrs.append(RsyncAttribute(name: "checksum", code: chars[2]))
-        }
-
-        // Position 4: size
-        if chars[3] == "s" || chars[3] == "+" {
-            attrs.append(RsyncAttribute(name: "size", code: chars[3]))
-        }
-
-        // Position 5: time (can be 't', 'T', or '+')
+        appendAttr(&attrs, name: "checksum",    code: chars[2],  expected: "c")
+        appendAttr(&attrs, name: "size",        code: chars[3],  expected: "s")
+        // time can be 't', 'T', or '+'
         if chars[4] == "t" || chars[4] == "T" || chars[4] == "+" {
             attrs.append(RsyncAttribute(name: "time", code: chars[4]))
         }
-
-        // Position 6: permissions
-        if chars[5] == "p" || chars[5] == "+" {
-            attrs.append(RsyncAttribute(name: "permissions", code: chars[5]))
-        }
-
-        // Position 7: owner
-        if chars[6] == "o" || chars[6] == "+" {
-            attrs.append(RsyncAttribute(name: "owner", code: chars[6]))
-        }
-
-        // Position 8: group
-        if chars[7] == "g" || chars[7] == "+" {
-            attrs.append(RsyncAttribute(name: "group", code: chars[7]))
-        }
-
-        // Position 9: reserved/user (usually 'u' or '+')
-        if chars[8] == "u" || chars[8] == "+" {
-            attrs.append(RsyncAttribute(name: "reserved", code: chars[8]))
-        }
-
-        // Position 10: ACL
-        if chars[9] == "a" || chars[9] == "+" {
-            attrs.append(RsyncAttribute(name: "acl", code: chars[9]))
-        }
-
-        // Position 11: extended attributes
-        if chars[10] == "x" || chars[10] == "+" {
-            attrs.append(RsyncAttribute(name: "xattr", code: chars[10]))
-        }
-
-        // Position 11: future use
-        if chars[11] == "?" || chars[11] == "+" {
-            attrs.append(RsyncAttribute(name: "future", code: chars[11]))
-        }
+        appendAttr(&attrs, name: "permissions", code: chars[5],  expected: "p")
+        appendAttr(&attrs, name: "owner",       code: chars[6],  expected: "o")
+        appendAttr(&attrs, name: "group",       code: chars[7],  expected: "g")
+        appendAttr(&attrs, name: "reserved",    code: chars[8],  expected: "u")
+        appendAttr(&attrs, name: "acl",         code: chars[9],  expected: "a")
+        appendAttr(&attrs, name: "xattr",       code: chars[10], expected: "x")
+        appendAttr(&attrs, name: "future",      code: chars[11], expected: "?")
 
         let path = String(chars.dropFirst(13)).trimmingCharacters(in: .whitespaces)
 
@@ -130,7 +137,43 @@ public struct RsyncOutputRecord {
             path: path,
             updateType: updateType,
             fileType: fileType,
-            attributes: attrs
+            attributes: attrs,
+            version: .v342
+        )
+    }
+
+    /// Parse rsync 3.4.1 format: 13-char prefix + space + path (e.g., ".f..t........ file.txt")
+    /// Layout: Y X c s t p o g n u a x ?  (extra namespace 'n' at position 8)
+    private static func parseV341(_ record: String) -> RsyncOutputRecord? {
+        let chars = Array(record)
+        guard chars.count >= 14, chars[13] == " " else { return nil }
+
+        let updateType = chars[0]
+        let fileType = chars[1]
+
+        var attrs: [RsyncAttribute] = []
+        appendAttr(&attrs, name: "checksum",    code: chars[2],  expected: "c")
+        appendAttr(&attrs, name: "size",        code: chars[3],  expected: "s")
+        if chars[4] == "t" || chars[4] == "T" || chars[4] == "+" {
+            attrs.append(RsyncAttribute(name: "time", code: chars[4]))
+        }
+        appendAttr(&attrs, name: "permissions", code: chars[5],  expected: "p")
+        appendAttr(&attrs, name: "owner",       code: chars[6],  expected: "o")
+        appendAttr(&attrs, name: "group",       code: chars[7],  expected: "g")
+        appendAttr(&attrs, name: "namespace",   code: chars[8],  expected: "n")
+        appendAttr(&attrs, name: "reserved",    code: chars[9],  expected: "u")
+        appendAttr(&attrs, name: "acl",         code: chars[10], expected: "a")
+        appendAttr(&attrs, name: "xattr",       code: chars[11], expected: "x")
+        appendAttr(&attrs, name: "future",      code: chars[12], expected: "?")
+
+        let path = String(chars.dropFirst(14)).trimmingCharacters(in: .whitespaces)
+
+        return RsyncOutputRecord(
+            path: path,
+            updateType: updateType,
+            fileType: fileType,
+            attributes: attrs,
+            version: .v341
         )
     }
 
