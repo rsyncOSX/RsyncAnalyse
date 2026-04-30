@@ -17,7 +17,7 @@ struct RsyncOutputRecordTests {
     struct BasicFormatTestsFixed {
         @Test("Parse new file with all attributes new")
         func parseNewFile() {
-            // Format: >f+++++++++ (12 chars: > f and 10 plusses)
+            // Format: >f+++++++++ (11 chars: > f and 9 plusses)
             let record = ">f+++++++++ documents/report.pdf"
             let parsed = RsyncOutputRecord(from: record)
 
@@ -25,23 +25,23 @@ struct RsyncOutputRecordTests {
             #expect(parsed?.updateType == ">")
             #expect(parsed?.fileType == "f")
             #expect(parsed?.path == "documents/report.pdf")
-            #expect(parsed?.attributes.count == 10)
+            #expect(parsed?.attributes.count == 9)
             #expect(parsed?.isNewItem == true)
             #expect(parsed?.fileTypeLabel == "file")
         }
 
         @Test("Parse file with size and time change")
         func parseFileWithSizeAndTimeChange() {
-            // Format: >f.st...... (12 chars: >f + .  + s + t + 7 dots)
-            //         0123456789ABC
+            // Format: >f.st...... (11 chars: >f + . + s + t + 6 dots)
+            //         0123456789A
             //         >f.st......
             let record = ">f.st...... images/photo.jpg"
 
             // Validate format
             let chars = Array(record)
-            let formatString = String(chars.prefix(12))
-            #expect(formatString.count == 12, "Format should be 12 chars, got \(formatString.count): '\(formatString)'")
-            #expect(chars.count > 12 && chars[12] == " ", "Position 12 should be space")
+            let formatString = String(chars.prefix(11))
+            #expect(formatString.count == 11, "Format should be 11 chars, got \(formatString.count): '\(formatString)'")
+            #expect(chars.count > 11 && chars[11] == " ", "Position 11 should be space")
 
             let parsed = RsyncOutputRecord(from: record)
 
@@ -57,8 +57,8 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse directory with timestamp change")
         func parseDirectoryTimestampChange() {
-            // Format:  .d..t...... (12 chars:  .  + d + 2 dots + t + 7 dots)
-            //         0123456789ABC
+            // Format: .d..t...... (11 chars: . + d + 2 dots + t + 6 dots)
+            //         0123456789A
             //         .d..t......
             let record = ".d..t...... src/components/"
 
@@ -75,8 +75,8 @@ struct RsyncOutputRecordTests {
 
         @Test("Parse permission change only")
         func parsePermissionChange() {
-            // Format: .f...p..... (12 chars: . + f + 3 dots + p + 6 dots)
-            //         0123456789ABC
+            // Format: .f...p..... (11 chars: . + f + 3 dots + p + 5 dots)
+            //         0123456789A
             //         .f...p.....
             let record = ".f...p..... scripts/deploy.sh"
 
@@ -105,15 +105,15 @@ struct RsyncOutputRecordTests {
             ]
 
             for (format, description) in testCases {
-                #expect(format.count == 12,
-                        "\(description) format '\(format)' should be 12 chars, got \(format.count)")
+                #expect(format.count == 11,
+                        "\(description) format '\(format)' should be 11 chars, got \(format.count)")
             }
         }
 
         @Test("Parse with visual format guide")
         func parseWithVisualGuide() {
-            // Visual guide for the 12-character format:
-            // Position:  0 1 2 3 4 5 6 7 8 9 10 11
+            // Visual guide for the 11-character format (rsync 3.4.2):
+            // Position:  0 1 2 3 4 5 6 7 8 9 10
             // Format:   Y X c s t p o g u a  x
             // Example:  > f .  s t . . . . .   .
 
@@ -480,9 +480,9 @@ struct RsyncOutputRecordTests {
     struct RealWorldExamples {
         @Test("Typical file sync scenario - corrected format")
         func realWorldExample1Corrected() {
-            // Each record must be exactly 12 chars + space + path
-            // Format: YXcstpoguax  path
-            //         0123456789AB 12...
+            // Each record must be exactly 11 chars + space + path (rsync 3.4.2)
+            // Format: YXcstpoguax path
+            //         0123456789A 11...
             let records = [
                 ".d..t...... ./",
                 ".f...p..... Something.pdf",
@@ -497,12 +497,12 @@ struct RsyncOutputRecordTests {
             // Verify each record format
             for (index, record) in records.enumerated() {
                 let chars = Array(record)
-                #expect(chars.count >= 13,
+                #expect(chars.count >= 12,
                         "Record \(index) too short: \(chars.count) chars - '\(record)'")
-                if chars.count >= 13 {
-                    let formatPart = String(chars[0 ... 11])
-                    #expect(chars[12] == " ",
-                            "Record \(index) missing space at position 12: '\(record)' - got '\(chars[12])' - format: '\(formatPart)'")
+                if chars.count >= 12 {
+                    let formatPart = String(chars[0 ... 10])
+                    #expect(chars[11] == " ",
+                            "Record \(index) missing space at position 11: '\(record)' - got '\(chars[11])' - format: '\(formatPart)'")
                 }
             }
 
@@ -535,31 +535,31 @@ struct RsyncOutputRecordTests {
             #expect(parsed[7].updateType == ">", "Last file should be received")
             #expect(parsed[7].isNewItem == true, "Last file should be new")
             #expect(parsed[7].path == "Parameter_Usage.txt", "Should have correct filename")
-            #expect(parsed[7].attributes.count == 10, "New file should have all 10 attributes marked as new")
+            #expect(parsed[7].attributes.count == 9, "New file should have all 9 attributes marked as new")
         }
 
         @Test("Backup scenario with deletions - corrected format")
         func realWorldExample2Corrected() {
-            // Each record must be exactly 12 chars + space + path
-            // Format: YXcstpoguax  path
-            //         0123456789AB 12...
+            // Each record must be exactly 11 chars + space + path (rsync 3.4.2)
+            // Format: YXcstpoguax path
+            //         0123456789A 11...
             let records = [
-                ">f.st...... data/updated.csv", // 12 chars: >f.st......
-                "cd+++++++++ logs/2024/", // 12 chars: cd+++++++++
-                ">f+++++++++ logs/2024/app.log", // 12 chars: >f+++++++++
+                ">f.st...... data/updated.csv", // 11 chars: >f.st......
+                "cd+++++++++ logs/2024/", // 11 chars: cd+++++++++
+                ">f+++++++++ logs/2024/app.log", // 11 chars: >f+++++++++
                 "*deleting old/deprecated.txt", // Special deletion format
-                ".f....p.... scripts/backup.sh" // 12 chars: .f....p....
+                ".f....p.... scripts/backup.sh" // 11 chars: .f....p....
             ]
 
             // Verify each record format
             for (index, record) in records.enumerated() {
                 if !record.hasPrefix("*") {
                     let chars = Array(record)
-                    #expect(chars.count >= 13,
+                    #expect(chars.count >= 12,
                             "Record \(index) too short: \(chars.count) chars - '\(record)'")
-                    if chars.count >= 13 {
-                        #expect(chars[12] == " ",
-                                "Record \(index) missing space at position 12: '\(record)' - got '\(chars[12])'")
+                    if chars.count >= 12 {
+                        #expect(chars[11] == " ",
+                                "Record \(index) missing space at position 11: '\(record)' - got '\(chars[11])'")
                     }
                 }
             }
@@ -581,9 +581,9 @@ struct RsyncOutputRecordTests {
 
         @Test("Complex attribute changes - corrected format")
         func realWorldExample3Corrected() {
-            // Each record must be exactly 12 chars + space + path
-            // Format: YXcstpoguax  path
-            //         0123456789AB 12...
+            // Each record must be exactly 11 chars + space + path (rsync 3.4.2)
+            // Format: YXcstpoguax path
+            //         0123456789A 11...
             let records = [
                 ">f.stpog... /var/www/index.html",
                 ".fc........ config/settings.json",
@@ -594,11 +594,11 @@ struct RsyncOutputRecordTests {
             // Verify each record format
             for (index, record) in records.enumerated() {
                 let chars = Array(record)
-                #expect(chars.count >= 13,
+                #expect(chars.count >= 12,
                         "Record \(index) too short: \(chars.count) chars - '\(record)'")
-                if chars.count >= 13 {
-                    #expect(chars[12] == " ",
-                            "Record \(index) missing space at position 12: '\(record)' - got '\(chars[12])'")
+                if chars.count >= 12 {
+                    #expect(chars[11] == " ",
+                            "Record \(index) missing space at position 11: '\(record)' - got '\(chars[11])'")
                 }
             }
 
@@ -632,9 +632,9 @@ struct RsyncOutputRecordTests {
 
         @Test("Helper:  Validate record format")
         func validateRecordFormat() {
-            // This helper test shows the correct format
+            // This helper test shows the correct format for rsync 3.4.2
             let validRecords = [
-                // Update type, file type, 10 attribute positions, space, path
+                // Update type, file type, 9 attribute positions, space, path
                 ">f+++++++++ file.txt", // All new (received)
                 ".d..t...... dir/", // Dir time changed
                 "<f.st...... data.csv", // Size and time changed (sent)
@@ -649,12 +649,12 @@ struct RsyncOutputRecordTests {
             for record in validRecords {
                 let chars = Array(record)
 
-                // Must be at least 13 characters (12 format + space + at least 1 char path)
-                #expect(chars.count >= 13, "Record too short: '\(record)'")
+                // Must be at least 12 characters (11 format + space + at least 1 char path)
+                #expect(chars.count >= 12, "Record too short: '\(record)'")
 
-                // Position 12 must be a space
-                #expect(chars[12] == " ",
-                        "Position 12 must be space in '\(record)', got '\(chars[12])'")
+                // Position 11 must be a space
+                #expect(chars[11] == " ",
+                        "Position 11 must be space in '\(record)', got '\(chars[11])'")
 
                 // Should parse successfully
                 let parsed = RsyncOutputRecord(from: record)
@@ -704,13 +704,13 @@ struct RsyncOutputRecordTests {
 
     @Suite("Regression Tests", .tags(.regression))
     struct RegressionTests {
-        @Test("Bug Fix: Correct character count (12 not 11)")
+        @Test("Bug Fix: Correct character count (11 not 12)")
         func bugFixCorrectCharacterCount() {
-            // Ensure we're checking for 12 characters, not 11
-            let record = ">f.st...... x.txt" // Exactly 12 chars + space + path
+            // rsync 3.4.2 uses 11-character format prefix (one shorter than 3.4.1's 12-char)
+            let record = ">f.st...... x.txt" // Exactly 11 chars + space + path
             let parsed = RsyncOutputRecord(from: record)
 
-            #expect(parsed != nil, "Should parse 12-character format correctly")
+            #expect(parsed != nil, "Should parse 11-character format (rsync 3.4.2) correctly")
         }
 
         @Test("Bug Fix: Correct attribute positions")
@@ -789,13 +789,13 @@ struct RsyncOutputRecordTests {
         }
     }
 
-    // MARK: - rsync 3.4.1 (13-char prefix) Tests
+    // MARK: - rsync 3.4.1 (12-char prefix) Tests
 
-    @Suite("rsync 3.4.1 — 13-char format")
+    @Suite("rsync 3.4.1 — 12-char format")
     struct V341FormatTests {
         @Test("Parse new file with all attributes new")
         func parseNewFile() {
-            // 13-char prefix: >f + 11 plusses
+            // 12-char prefix: >f + 10 plusses
             let record = ">f++++++++++ documents/report.pdf"
             let parsed = RsyncOutputRecord(from: record)
 
@@ -804,19 +804,19 @@ struct RsyncOutputRecordTests {
             #expect(parsed?.updateType == ">")
             #expect(parsed?.fileType == "f")
             #expect(parsed?.path == "documents/report.pdf")
-            #expect(parsed?.attributes.count == 11)
+            #expect(parsed?.attributes.count == 10)
             #expect(parsed?.isNewItem == true)
             #expect(parsed?.fileTypeLabel == "file")
         }
 
         @Test("Parse file with size and time change")
         func parseFileWithSizeAndTimeChange() {
-            // Layout: Y X c s t p o g n u a x ?
-            //         0 1 2 3 4 5 6 7 8 9 A B C
+            // Layout: Y X c s t p o g n u a  x
+            //         0 1 2 3 4 5 6 7 8 9 10 11
             let record = ">f.st....... images/photo.jpg"
 
             let chars = Array(record)
-            #expect(chars.count > 13 && chars[13] == " ", "Position 13 should be space")
+            #expect(chars.count > 12 && chars[12] == " ", "Position 12 should be space")
 
             let parsed = RsyncOutputRecord(from: record)
 
@@ -882,7 +882,7 @@ struct RsyncOutputRecordTests {
             (11, Character("x"), "xattr")
         ])
         func parseIndividualAttributes(position: Int, code: Character, name: String) {
-            var chars = Array(".f..........") // 13 chars
+            var chars = Array(".f..........") // 12 chars
             chars[position] = code
             let record = String(chars) + " test.txt"
             let parsed = RsyncOutputRecord(from: record)
@@ -897,13 +897,13 @@ struct RsyncOutputRecordTests {
 
     @Suite("detectRsyncVersion")
     struct DetectVersionTests {
-        @Test("Detects v3.4.2 from 12-char prefix")
+        @Test("Detects v3.4.2 from 11-char prefix")
         func detectsV342() {
             #expect(RsyncOutputRecord.detectRsyncVersion(">f.st...... a.txt") == .v342)
             #expect(RsyncOutputRecord.detectRsyncVersion(".f......... b") == .v342)
         }
 
-        @Test("Detects v3.4.1 from 13-char prefix")
+        @Test("Detects v3.4.1 from 12-char prefix")
         func detectsV341() {
             #expect(RsyncOutputRecord.detectRsyncVersion(">f.st....... a.txt") == .v341)
             #expect(RsyncOutputRecord.detectRsyncVersion(".f.......... b") == .v341)
@@ -918,7 +918,7 @@ struct RsyncOutputRecordTests {
         func rejectsMalformed() {
             #expect(RsyncOutputRecord.detectRsyncVersion("") == nil)
             #expect(RsyncOutputRecord.detectRsyncVersion("short") == nil)
-            // No space at index 12 or 13
+            // No space at index 11 or 12
             #expect(RsyncOutputRecord.detectRsyncVersion("noSpaceForLong file.txt") == nil)
         }
     }
