@@ -21,8 +21,8 @@ The package exposes **two parallel parsing layers** that serve different callers
 
 ### 1. Per-record parsers (line-level, used by SwiftUI rows)
 
-- `RsyncOutputRecord` — strict **12-char** itemized format (`.f..t....... path`), the format produced by GNU/BSD rsync.
-- `OpenRsyncOutputRecord` — strict **9-char** itemized format (`.f..t.... path`), the format produced by OpenBSD's openrsync. The trailing field is `z` (compressed) instead of rsync's `u/a/x/?` tail.
+- `RsyncOutputRecord` — strict **11-char** itemized format (`.f..t...... path`), the format produced by GNU/BSD rsync 3.4.2. A 12-char variant from rsync 3.4.1 is also accepted (extra namespace `n` slot). Auto-detected by space position.
+- `OpenRsyncOutputRecord` — strict **9-char** itemized format (`.f..t.... path`), the format produced by OpenBSD's openrsync. The trailing field is `z` (compressed) instead of rsync's `u/a/x` tail.
 
 Both structs share the same shape (`path`, `updateType`, `fileType`, `[RsyncAttribute]`, optional `message`) and the same `init?(from: String)` contract:
 

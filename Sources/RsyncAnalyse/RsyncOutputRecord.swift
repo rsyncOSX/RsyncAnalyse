@@ -10,14 +10,14 @@ import SwiftUI
 // MARK: - Rsync Version
 
 public enum RsyncVersion {
-    case v341 // 13-char attribute prefix (includes namespace 'n' at position 8)
-    case v342 // 12-char attribute prefix
+    case v341 // 12-char attribute prefix (includes namespace 'n' at position 8)
+    case v342 // 11-char attribute prefix
 }
 
 // MARK: - Unified Rsync Output Parser
 
 /// Unified parser for rsync itemized output.
-/// Supports both rsync 3.4.2 (12-char attribute prefix) and rsync 3.4.1 (13-char attribute prefix).
+/// Supports both rsync 3.4.2 (11-char attribute prefix) and rsync 3.4.1 (12-char attribute prefix).
 /// Format: YX<attrs> where Y=update type, X=file type, followed by space + path.
 public struct RsyncOutputRecord {
     public let path: String
@@ -43,7 +43,7 @@ public struct RsyncOutputRecord {
 
     /// Parse rsync output record with automatic format detection.
     /// - Parameter record: Raw rsync output line
-    /// - Note: Format is 12 or 13 characters + space + path, depending on rsync version.
+    /// - Note: Format is 11 or 12 characters + space + path, depending on rsync version.
     public init?(from record: String) {
         // Handle deletion/message format:  "*deleting file.txt"
         // Other messages may be: *received, *unsafe, *skip-over
@@ -87,12 +87,12 @@ public struct RsyncOutputRecord {
     // MARK: - Version Detection
 
     /// Detect rsync version from the position of the trailing space in the attribute prefix.
-    /// - 12-char prefix → space at index 12 → rsync 3.4.2
-    /// - 13-char prefix → space at index 13 → rsync 3.4.1
+    /// - 11-char prefix → space at index 11 → rsync 3.4.2
+    /// - 12-char prefix → space at index 12 → rsync 3.4.1
     public static func detectRsyncVersion(_ record: String) -> RsyncVersion? {
         let chars = Array(record)
-        if chars.count >= 13, chars[12] == " " { return .v342 }
-        if chars.count >= 14, chars[13] == " " { return .v341 }
+        if chars.count >= 12, chars[11] == " " { return .v342 }
+        if chars.count >= 13, chars[12] == " " { return .v341 }
         return nil
     }
 
@@ -107,11 +107,11 @@ public struct RsyncOutputRecord {
         }
     }
 
-    /// Parse rsync 3.4.2 format: 12-char prefix + space + path (e.g., ".f..t....... file.txt")
-    /// Layout: Y X c s t p o g u a x ?
+    /// Parse rsync 3.4.2 format: 11-char prefix + space + path (e.g., ".f..t...... file.txt")
+    /// Layout: Y X c s t p o g u a x
     private static func parseV342(_ record: String) -> RsyncOutputRecord? {
         let chars = Array(record)
-        guard chars.count >= 13, chars[12] == " " else { return nil }
+        guard chars.count >= 12, chars[11] == " " else { return nil }
 
         let updateType = chars[0]
         let fileType = chars[1]
@@ -129,9 +129,8 @@ public struct RsyncOutputRecord {
         appendAttr(&attrs, name: "reserved",    code: chars[8],  expected: "u")
         appendAttr(&attrs, name: "acl",         code: chars[9],  expected: "a")
         appendAttr(&attrs, name: "xattr",       code: chars[10], expected: "x")
-        appendAttr(&attrs, name: "future",      code: chars[11], expected: "?")
 
-        let path = String(chars.dropFirst(13)).trimmingCharacters(in: .whitespaces)
+        let path = String(chars.dropFirst(12)).trimmingCharacters(in: .whitespaces)
 
         return RsyncOutputRecord(
             path: path,
@@ -142,11 +141,11 @@ public struct RsyncOutputRecord {
         )
     }
 
-    /// Parse rsync 3.4.1 format: 13-char prefix + space + path (e.g., ".f..t........ file.txt")
-    /// Layout: Y X c s t p o g n u a x ?  (extra namespace 'n' at position 8)
+    /// Parse rsync 3.4.1 format: 12-char prefix + space + path (e.g., ".f..t....... file.txt")
+    /// Layout: Y X c s t p o g n u a x  (extra namespace 'n' at position 8)
     private static func parseV341(_ record: String) -> RsyncOutputRecord? {
         let chars = Array(record)
-        guard chars.count >= 14, chars[13] == " " else { return nil }
+        guard chars.count >= 13, chars[12] == " " else { return nil }
 
         let updateType = chars[0]
         let fileType = chars[1]
@@ -164,9 +163,8 @@ public struct RsyncOutputRecord {
         appendAttr(&attrs, name: "reserved",    code: chars[9],  expected: "u")
         appendAttr(&attrs, name: "acl",         code: chars[10], expected: "a")
         appendAttr(&attrs, name: "xattr",       code: chars[11], expected: "x")
-        appendAttr(&attrs, name: "future",      code: chars[12], expected: "?")
 
-        let path = String(chars.dropFirst(14)).trimmingCharacters(in: .whitespaces)
+        let path = String(chars.dropFirst(13)).trimmingCharacters(in: .whitespaces)
 
         return RsyncOutputRecord(
             path: path,
