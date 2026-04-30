@@ -115,60 +115,6 @@ public struct ParsedOpenRsyncRow: View {
     }
 }
 
-// MARK: - Rsync 3.4.2 Row View Component
-
-public struct Rsyncver342OutputRowView: View {
-    let record: String
-
-    public init(record: String) {
-        self.record = record
-    }
-
-    public var body: some View {
-        if let parsed = Rsyncver342OutputRecord(from: record) {
-            ParsedRsyncver342Row(parsed: parsed)
-        } else {
-            // Unparseable output - show as plain text
-            Text(record)
-                .font(.caption)
-                .textSelection(.enabled)
-        }
-    }
-}
-
-// MARK: - Parsed Rsync 3.4.2 Row Component
-
-public struct ParsedRsyncver342Row: View {
-    let parsed: Rsyncver342OutputRecord
-
-    public init(parsed: Rsyncver342OutputRecord) {
-        self.parsed = parsed
-    }
-
-    public var body: some View {
-        HStack(spacing: 6) {
-            // Update type tag
-            UpdateTypeTag(updateTypeLabel: parsed.updateTypeLabel)
-
-            // File type tag
-            FileTypeTag(fileTypeLabel: parsed.fileTypeLabel)
-
-            // Changed attributes
-            if !parsed.attributes.isEmpty {
-                ForEach(parsed.attributes) { attr in
-                    AttributeBadge(name: attr.name)
-                }
-            }
-
-            // Path
-            Text(parsed.path)
-                .lineLimit(1)
-                .font(.caption)
-                .textSelection(.enabled)
-        }
-    }
-}
-
 // MARK: - Reusable Tag Components
 
 public struct UpdateTypeTag: View {
